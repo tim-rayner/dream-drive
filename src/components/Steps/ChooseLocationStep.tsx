@@ -1,4 +1,5 @@
 import { Box, Button, Typography } from "@mui/material";
+import GoogleMapExample from "../Maps/GoogleMapExample";
 
 export default function ChooseLocationStep({
   onComplete,
@@ -8,6 +9,7 @@ export default function ChooseLocationStep({
   return (
     <Box>
       <Typography variant="h6">Choose Location</Typography>
+      <GoogleMapExample />
       <Button onClick={onComplete}>Complete</Button>
     </Box>
   );
