@@ -2,6 +2,7 @@
 
 import {
   AutoAwesome as AutoAwesomeIcon,
+  CheckCircle as CheckCircleIcon,
   Map as MapIcon,
   PhotoCamera as PhotoCameraIcon,
 } from "@mui/icons-material";
@@ -14,32 +15,10 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-
 import { useCallback, useEffect, useState } from "react";
 import ChooseLocationStep from "./ChooseLocationStep";
 import GenerateImageStep from "./GenerateImageStep";
 import UploadPhotoStep from "./UploadPhotoStep";
-
-const steps = [
-  {
-    title: "Upload Car Photo",
-    description:
-      "Upload a high-quality photo of your car to get started with the AI transformation process",
-    icon: <PhotoCameraIcon />,
-  },
-  {
-    title: "Choose Location",
-    description:
-      "Select any location from Google Street View to place your car in a new environment",
-    icon: <MapIcon />,
-  },
-  {
-    title: "Generate Image",
-    description:
-      "AI creates stunning cinematic images of your car in the chosen location",
-    icon: <AutoAwesomeIcon />,
-  },
-];
 
 const StepsOverview = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -50,6 +29,7 @@ const StepsOverview = () => {
   });
   const [uploadedFile, setUploadedFile] = useState(null);
   const [sceneImage, setSceneImage] = useState(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
   const [mapData, setMapData] = useState({
     position: null,
     marker: null,
@@ -91,6 +71,15 @@ const StepsOverview = () => {
       localStorage.removeItem("mapData");
     }
   }, [mapData]);
+
+  // Save generated image URL to localStorage when it changes
+  useEffect(() => {
+    if (generatedImageUrl) {
+      localStorage.setItem("generatedImageUrl", generatedImageUrl);
+    } else {
+      localStorage.removeItem("generatedImageUrl");
+    }
+  }, [generatedImageUrl]);
 
   // Restore file from localStorage on component mount
   useEffect(() => {
@@ -136,6 +125,13 @@ const StepsOverview = () => {
         localStorage.removeItem("mapData");
       }
     }
+
+    // Restore generated image URL from localStorage
+    const savedGeneratedImageUrl = localStorage.getItem("generatedImageUrl");
+    if (savedGeneratedImageUrl) {
+      setGeneratedImageUrl(savedGeneratedImageUrl);
+      setStepCompletion((prev) => ({ ...prev, 2: true }));
+    }
   }, []);
 
   const handleFileUpload = useCallback((file) => {
@@ -152,6 +148,27 @@ const StepsOverview = () => {
 
   const handleMapDataUpdate = useCallback((newMapData) => {
     setMapData(newMapData);
+  }, []);
+
+  const handleGenerationComplete = useCallback((imageUrl) => {
+    setGeneratedImageUrl(imageUrl);
+    setStepCompletion((prev) => ({ ...prev, 2: true }));
+    // Move to completion state
+    setActiveStep(3);
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setActiveStep(0);
+    setStepCompletion({ 0: false, 1: false, 2: false });
+    setUploadedFile(null);
+    setSceneImage(null);
+    setGeneratedImageUrl(null);
+    setMapData({ position: null, marker: null });
+    // Clear localStorage
+    localStorage.removeItem("uploadedFile");
+    localStorage.removeItem("sceneImage");
+    localStorage.removeItem("mapData");
+    localStorage.removeItem("generatedImageUrl");
   }, []);
 
   const renderActiveStep = () => {
@@ -181,13 +198,178 @@ const StepsOverview = () => {
       case 2:
         return (
           <GenerateImageStep
-            onComplete={() =>
-              setStepCompletion((prev) => ({ ...prev, 2: true }))
-            }
+            onComplete={handleGenerationComplete}
             uploadedFile={uploadedFile}
             sceneImage={sceneImage}
             mapData={mapData}
           />
+        );
+      case 3:
+        return (
+          <Box sx={{ maxWidth: 1200, mx: "auto", width: "100%" }}>
+            <Stack spacing={4}>
+              {/* Header */}
+              <Box sx={{ textAlign: "center" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 3,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: "50%",
+                      background:
+                        "linear-gradient(135deg, #10B981 0%, #34D399 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      mr: 2,
+                    }}
+                  >
+                    <CheckCircleIcon sx={{ fontSize: 40, color: "white" }} />
+                  </Box>
+                  <Typography variant="h4" component="h2" fontWeight={600}>
+                    Dream Drive Complete! 🎉
+                  </Typography>
+                </Box>
+                <Typography variant="body1" color="text.secondary">
+                  Your AI-generated car scene is ready! Download and share your
+                  creation.
+                </Typography>
+              </Box>
+
+              {/* Final Image Display */}
+              {generatedImageUrl && (
+                <Box>
+                  <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
+                    Your Generated Scene
+                  </Typography>
+
+                  <Card
+                    sx={{
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      border: "2px solid",
+                      borderColor: "success.main",
+                      boxShadow: "0 8px 32px rgba(16, 185, 129, 0.3)",
+                    }}
+                  >
+                    <CardContent sx={{ p: 0 }}>
+                      <Box
+                        sx={{
+                          position: "relative",
+                          width: "100%",
+                          height: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: "background.paper",
+                        }}
+                      >
+                        <img
+                          src={generatedImageUrl}
+                          alt="Generated AI Scene"
+                          style={{
+                            width: "100%",
+                            height: "auto",
+                            display: "block",
+                            objectFit: "cover",
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 16,
+                            right: 16,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            backgroundColor: "rgba(0,0,0,0.7)",
+                            color: "white",
+                            px: 2,
+                            py: 1,
+                            borderRadius: "20px",
+                          }}
+                        >
+                          <AutoAwesomeIcon sx={{ fontSize: 20 }} />
+                          <Typography variant="body2" fontWeight={600}>
+                            AI Generated
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+
+                  {/* Action Buttons */}
+                  <Box
+                    sx={{
+                      mt: 4,
+                      display: "flex",
+                      gap: 2,
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = generatedImageUrl;
+                        link.download = "dream-drive-scene.jpg";
+                        link.click();
+                      }}
+                      sx={{
+                        py: 2,
+                        px: 4,
+                        borderRadius: "12px",
+                        fontSize: "1.1rem",
+                        fontWeight: 600,
+                        textTransform: "none",
+                        background:
+                          "linear-gradient(45deg, #10B981 30%, #34D399 90%)",
+                        boxShadow: "0 3px 5px 2px rgba(16, 185, 129, .3)",
+                        "&:hover": {
+                          background:
+                            "linear-gradient(45deg, #059669 30%, #10B981 90%)",
+                        },
+                      }}
+                    >
+                      📥 Download Image
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      onClick={handleReset}
+                      sx={{
+                        py: 2,
+                        px: 4,
+                        borderRadius: "12px",
+                        fontSize: "1.1rem",
+                        fontWeight: 600,
+                        textTransform: "none",
+                        borderColor: "primary.main",
+                        color: "primary.main",
+                        "&:hover": {
+                          borderColor: "primary.dark",
+                          backgroundColor: "primary.main",
+                          color: "white",
+                        },
+                      }}
+                    >
+                      🔄 Create New Scene
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </Stack>
+          </Box>
         );
       default:
         return (
