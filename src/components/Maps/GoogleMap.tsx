@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 interface GoogleMapProps {
   apiKey: string;
@@ -7,6 +7,8 @@ interface GoogleMapProps {
   mapId?: string;
   className?: string;
   style?: React.CSSProperties;
+  onSceneCapture?: (sceneImage: string) => void;
+  showSearchBar?: boolean;
 }
 
 interface MapState {
@@ -19,15 +21,18 @@ interface MapState {
 
 const GoogleMap: React.FC<GoogleMapProps> = ({
   apiKey,
-  initialCenter = { lat: 40.7128, lng: -74.006 }, // New York City default
+  initialCenter = { lat: 35.3606, lng: 138.7274 }, // Mount Fuji, Japan default
   initialZoom = 12,
   mapId = "DEMO_MAP_ID",
   className = "",
   style = {},
+  onSceneCapture,
+  showSearchBar = true,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const streetViewRef = useRef<HTMLDivElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
+  const chooseSceneButtonRef = useRef<HTMLButtonElement>(null);
   const [mapState, setMapState] = useState<MapState>({
     map: null,
     streetView: null,
@@ -35,6 +40,15 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     isStreetViewActive: false,
     isLoadingStreetView: false,
   });
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [lastSearchTime, setLastSearchTime] = useState(0);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
 
   useEffect(() => {
     // Load Google Maps API
@@ -59,7 +73,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         }
 
         const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry,marker`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry,marker,places&v=beta`;
         script.async = true;
         script.defer = true;
         script.onload = () => resolve();
@@ -72,6 +86,13 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     const initializeMap = async () => {
       try {
         await loadGoogleMapsAPI();
+
+        // Check if Places API is available
+        if (!google.maps.places) {
+          console.warn(
+            "Places API not loaded. Search functionality may not work."
+          );
+        }
 
         if (!mapRef.current) return;
 
@@ -105,6 +126,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             motionTrackingControl: false,
             panControl: false,
             zoomControl: false,
+            clickToGo: false,
+            disableDefaultUI: true,
           }
         );
 
@@ -135,6 +158,12 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           // Set loading state
           setMapState((prev) => ({ ...prev, isLoadingStreetView: true }));
 
+          // Ensure Street View is properly initialized for the new location
+          setTimeout(() => {
+            streetView.setPosition(position);
+            streetView.setVisible(true);
+          }, 50);
+
           // Check if Street View is available at this location
           const streetViewService = new google.maps.StreetViewService();
           streetViewService.getPanorama(
@@ -148,6 +177,17 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                 if (mapRef.current && streetViewRef.current) {
                   mapRef.current.style.display = "none";
                   streetViewRef.current.style.display = "block";
+
+                  // Show choose scene button
+                  if (chooseSceneButtonRef.current) {
+                    chooseSceneButtonRef.current.style.display = "block";
+                  }
+
+                  // Force Street View to reload with new position
+                  setTimeout(() => {
+                    streetView.setPosition(position);
+                    streetView.setVisible(true);
+                  }, 100);
 
                   // Add error handling for Street View loading
                   const checkStreetViewLoaded = () => {
@@ -171,6 +211,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                           }
                           if (backButtonRef.current) {
                             backButtonRef.current.style.display = "none";
+                          }
+                          if (chooseSceneButtonRef.current) {
+                            chooseSceneButtonRef.current.style.display = "none";
                           }
                           setMapState((prev) => ({
                             ...prev,
@@ -238,6 +281,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       if (mapRef.current && streetViewRef.current) {
         mapRef.current.style.display = "block";
         streetViewRef.current.style.display = "none";
+
+        // Don't reset Street View position here - let it maintain its current state
+        // The position will be set properly when a new location is selected
+
         // Trigger a resize event to ensure the map renders properly
         setTimeout(() => {
           if (mapState.map) {
@@ -246,15 +293,254 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         }, 50);
       }
 
-      // Hide back button
+      // Hide back button and choose scene button
       if (backButtonRef.current) {
         backButtonRef.current.style.display = "none";
       }
+      if (chooseSceneButtonRef.current) {
+        chooseSceneButtonRef.current.style.display = "none";
+      }
 
+      // Remove the marker from the map
+      if (mapState.marker) {
+        mapState.marker.map = null;
+        // Ensure the marker is completely removed from the map
+        mapState.marker = null;
+      }
+
+      // Reset all state except map center and zoom
       setMapState((prev) => ({
-        ...prev,
+        map: prev.map,
+        streetView: prev.streetView,
+        marker: null, // Remove marker
         isStreetViewActive: false,
+        isLoadingStreetView: false,
       }));
+    }
+  };
+
+  const handleSceneCapture = async (): Promise<string> => {
+    if (!mapState.streetView) {
+      throw new Error("Street View not available");
+    }
+
+    try {
+      // Get the Street View panorama data
+      const panorama = mapState.streetView;
+      const position = panorama.getPosition();
+      const pov = panorama.getPov();
+
+      if (!position) {
+        throw new Error("Position not available");
+      }
+
+      // Create a Street View Static API URL
+      const staticImageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${position.lat()},${position.lng()}&heading=${
+        pov.heading
+      }&pitch=${pov.pitch}&key=${apiKey}`;
+
+      // Convert the static image to base64
+      const response = await fetch(staticImageUrl);
+      const blob = await response.blob();
+
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error capturing scene:", error);
+      throw error;
+    }
+  };
+
+  const handleChooseScene = async () => {
+    try {
+      const sceneImage = await handleSceneCapture();
+
+      // Call the parent callback with the captured scene
+      if (onSceneCapture) {
+        onSceneCapture(sceneImage);
+      }
+
+      // Show success message
+      alert("Scene captured successfully! Moving to step 3.");
+    } catch (error) {
+      console.error("Failed to capture scene:", error);
+      alert("Failed to capture scene. Please try again.");
+    }
+  };
+
+  // Rate-limited search function
+  const searchPlaces = useCallback(
+    async (query: string) => {
+      const now = Date.now();
+      const timeSinceLastSearch = now - lastSearchTime;
+
+      // Rate limit: minimum 500ms between searches
+      if (timeSinceLastSearch < 500) {
+        return;
+      }
+
+      if (query.length < 3) {
+        setSearchResults([]);
+        setShowAutocomplete(false);
+        return;
+      }
+
+      setIsSearching(true);
+      setLastSearchTime(now);
+
+      try {
+        // Use the new Places API with proper authentication
+        const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
+        const requestBody = {
+          textQuery: query,
+          maxResultCount: 5,
+        };
+
+        const response = await fetch(`${searchUrl}?key=${apiKey}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-FieldMask":
+              "places.displayName,places.id,places.location,places.formattedAddress",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setIsSearching(false);
+
+        if (data.places && data.places.length > 0) {
+          // Convert to the format expected by our component
+          const predictions = data.places.map(
+            (place: {
+              id: string;
+              displayName?: { text: string };
+              formattedAddress?: string;
+            }) => ({
+              place_id: place.id,
+              description:
+                place.displayName?.text || place.formattedAddress || "",
+              structured_formatting: {
+                main_text:
+                  place.displayName?.text || place.formattedAddress || "",
+                secondary_text: place.formattedAddress || "",
+              },
+            })
+          );
+
+          setSearchResults(predictions);
+          setShowAutocomplete(true);
+        } else {
+          setSearchResults([]);
+          setShowAutocomplete(false);
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+        setIsSearching(false);
+        setSearchResults([]);
+        setShowAutocomplete(false);
+      }
+    },
+    [lastSearchTime]
+  );
+
+  // Handle search input changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    searchPlaces(query);
+  };
+
+  // Handle search result selection
+  const handleSearchSelect = async (prediction: {
+    place_id: string;
+    description: string;
+    structured_formatting: {
+      main_text: string;
+      secondary_text: string;
+    };
+  }) => {
+    setSearchQuery(prediction.description);
+    setShowAutocomplete(false);
+    setSearchResults([]);
+
+    try {
+      // Use the new Places API to get place details
+      const detailsUrl = `https://places.googleapis.com/v1/places/${prediction.place_id}`;
+      const response = await fetch(`${detailsUrl}?key=${apiKey}`, {
+        method: "GET",
+        headers: {
+          "X-Goog-FieldMask": "location,formattedAddress",
+        },
+      });
+
+      if (response.ok) {
+        const placeData = await response.json();
+        if (
+          placeData.location &&
+          placeData.location.latitude &&
+          placeData.location.longitude
+        ) {
+          const location = new google.maps.LatLng(
+            placeData.location.latitude,
+            placeData.location.longitude
+          );
+          if (mapState.map) {
+            mapState.map.setCenter(location);
+            mapState.map.setZoom(15);
+          }
+        }
+      } else {
+        // Fallback to geocoder if Places API fails
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode(
+          { placeId: prediction.place_id },
+          (results, geocodeStatus) => {
+            if (
+              geocodeStatus === google.maps.GeocoderStatus.OK &&
+              results &&
+              results[0]
+            ) {
+              const location = results[0].geometry.location;
+              if (mapState.map) {
+                mapState.map.setCenter(location);
+                mapState.map.setZoom(15);
+              }
+            }
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error getting place details:", error);
+      // Fallback to geocoder
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(
+        { placeId: prediction.place_id },
+        (results, geocodeStatus) => {
+          if (
+            geocodeStatus === google.maps.GeocoderStatus.OK &&
+            results &&
+            results[0]
+          ) {
+            const location = results[0].geometry.location;
+            if (mapState.map) {
+              mapState.map.setCenter(location);
+              mapState.map.setZoom(15);
+            }
+          }
+        }
+      );
     }
   };
 
@@ -268,6 +554,143 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         ...style,
       }}
     >
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: translateY(-50%) rotate(0deg); }
+            100% { transform: translateY(-50%) rotate(360deg); }
+          }
+        `}
+      </style>
+      {/* Search Bar */}
+      {showSearchBar && (
+        <div
+          style={{
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            right: "10px",
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: "400px",
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Search for a location..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => setShowAutocomplete(true)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                paddingRight: isSearching ? "40px" : "16px",
+                border: "1px solid rgba(0, 0, 0, 0.12)",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                outline: "none",
+                transition: "all 0.2s ease",
+              }}
+              onBlur={() => {
+                // Delay hiding autocomplete to allow for clicks
+                setTimeout(() => setShowAutocomplete(false), 200);
+              }}
+            />
+
+            {/* Loading indicator */}
+            {isSearching && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid #f3f3f3",
+                  borderTop: "2px solid #3498db",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
+            )}
+
+            {/* Autocomplete dropdown */}
+            {showAutocomplete && searchResults.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(0, 0, 0, 0.12)",
+                  borderRadius: "8px",
+                  marginTop: "4px",
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  zIndex: 1001,
+                }}
+              >
+                {searchResults.map((prediction, index) => (
+                  <div
+                    key={prediction.place_id}
+                    onClick={() => handleSearchSelect(prediction)}
+                    style={{
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      borderBottom:
+                        index < searchResults.length - 1
+                          ? "1px solid rgba(0, 0, 0, 0.06)"
+                          : "none",
+                      transition: "background-color 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "rgba(0, 0, 0, 0.04)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "#333",
+                        marginBottom: "2px",
+                      }}
+                    >
+                      {prediction.structured_formatting?.main_text ||
+                        prediction.description}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                      }}
+                    >
+                      {prediction.structured_formatting?.secondary_text || ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div
         ref={mapRef}
         id="map"
@@ -297,24 +720,61 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           left: "10px",
           zIndex: 1000,
           display: "none",
-          padding: "8px 16px",
-          backgroundColor: "#fff",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
+          padding: "10px 16px",
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          border: "1px solid rgba(0, 0, 0, 0.12)",
+          borderRadius: "8px",
           cursor: "pointer",
           fontSize: "14px",
           fontWeight: "500",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          transition: "background-color 0.2s ease",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+          transition: "all 0.2s ease",
+          backdropFilter: "blur(8px)",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "#f5f5f5";
+          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.2)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "#fff";
+          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.95)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
         }}
       >
         ← Back to Map
+      </button>
+
+      <button
+        ref={chooseSceneButtonRef}
+        id="choose-scene-btn"
+        onClick={handleChooseScene}
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          zIndex: 1000,
+          display: "none",
+          padding: "10px 16px",
+          backgroundColor: "rgba(76, 175, 80, 0.95)",
+          color: "white",
+          border: "none",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "600",
+          boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
+          transition: "all 0.2s ease",
+          backdropFilter: "blur(8px)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "rgba(76, 175, 80, 1)";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(76, 175, 80, 0.4)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "rgba(76, 175, 80, 0.95)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(76, 175, 80, 0.3)";
+        }}
+      >
+        📸 Choose Scene
       </button>
 
       {mapState.isLoadingStreetView && (

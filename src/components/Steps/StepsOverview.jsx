@@ -49,6 +49,11 @@ const StepsOverview = () => {
     2: false,
   });
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [sceneImage, setSceneImage] = useState(null);
+  const [mapData, setMapData] = useState({
+    position: null,
+    marker: null,
+  });
 
   // Save file to localStorage when it changes
   useEffect(() => {
@@ -68,6 +73,24 @@ const StepsOverview = () => {
       localStorage.removeItem("uploadedFile");
     }
   }, [uploadedFile]);
+
+  // Save scene image to localStorage when it changes
+  useEffect(() => {
+    if (sceneImage) {
+      localStorage.setItem("sceneImage", sceneImage);
+    } else {
+      localStorage.removeItem("sceneImage");
+    }
+  }, [sceneImage]);
+
+  // Save map data to localStorage when it changes
+  useEffect(() => {
+    if (mapData.position) {
+      localStorage.setItem("mapData", JSON.stringify(mapData));
+    } else {
+      localStorage.removeItem("mapData");
+    }
+  }, [mapData]);
 
   // Restore file from localStorage on component mount
   useEffect(() => {
@@ -94,11 +117,41 @@ const StepsOverview = () => {
         localStorage.removeItem("uploadedFile");
       }
     }
+
+    // Restore scene image from localStorage
+    const savedSceneImage = localStorage.getItem("sceneImage");
+    if (savedSceneImage) {
+      setSceneImage(savedSceneImage);
+      setStepCompletion((prev) => ({ ...prev, 1: true }));
+    }
+
+    // Restore map data from localStorage
+    const savedMapData = localStorage.getItem("mapData");
+    if (savedMapData) {
+      try {
+        const restoredMapData = JSON.parse(savedMapData);
+        setMapData(restoredMapData);
+      } catch (error) {
+        console.error("Error restoring map data from localStorage:", error);
+        localStorage.removeItem("mapData");
+      }
+    }
   }, []);
 
   const handleFileUpload = useCallback((file) => {
     setUploadedFile(file);
     setStepCompletion((prev) => ({ ...prev, 0: true }));
+  }, []);
+
+  const handleSceneCapture = useCallback((capturedImage) => {
+    setSceneImage(capturedImage);
+    setStepCompletion((prev) => ({ ...prev, 1: true }));
+    // Automatically move to step 3 (Generate Image)
+    setActiveStep(2);
+  }, []);
+
+  const handleMapDataUpdate = useCallback((newMapData) => {
+    setMapData(newMapData);
   }, []);
 
   const renderActiveStep = () => {
@@ -119,6 +172,10 @@ const StepsOverview = () => {
             onComplete={() =>
               setStepCompletion((prev) => ({ ...prev, 1: true }))
             }
+            sceneImage={sceneImage}
+            mapData={mapData}
+            onSceneCapture={handleSceneCapture}
+            onMapDataUpdate={handleMapDataUpdate}
           />
         );
       case 2:
@@ -127,6 +184,9 @@ const StepsOverview = () => {
             onComplete={() =>
               setStepCompletion((prev) => ({ ...prev, 2: true }))
             }
+            uploadedFile={uploadedFile}
+            sceneImage={sceneImage}
+            mapData={mapData}
           />
         );
       default:
