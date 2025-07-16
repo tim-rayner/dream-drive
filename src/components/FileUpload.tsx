@@ -17,7 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 // Styled components
 const UploadArea = styled(Paper, {
@@ -68,6 +68,7 @@ interface FileUploadProps {
   maxFileSize?: number; // in MB
   acceptedTypes?: string[];
   className?: string;
+  uploadedFile?: File | null;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -81,12 +82,20 @@ const FileUpload: React.FC<FileUploadProps> = ({
     "image/gif",
   ],
   className,
+  uploadedFile: externalUploadedFile,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(
+    externalUploadedFile || null
+  );
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update selectedFile when externalUploadedFile changes
+  useEffect(() => {
+    setSelectedFile(externalUploadedFile || null);
+  }, [externalUploadedFile]);
 
   const validateFile = useCallback(
     (file: File): string | null => {

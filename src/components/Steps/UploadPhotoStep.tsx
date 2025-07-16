@@ -3,11 +3,19 @@ import FileUpload from "../FileUpload";
 
 export default function UploadPhotoStep({
   onComplete,
+  uploadedFile,
+  onFileUpload,
 }: {
   onComplete: () => void;
+  uploadedFile?: File | null;
+  onFileUpload?: (file: File) => void;
 }) {
   const handleFileSelect = (file: File) => {
     console.log("Selected file:", file);
+    // Call the parent's file upload handler
+    if (onFileUpload) {
+      onFileUpload(file);
+    }
     // Here you would typically upload the file to your server
     // For now, we'll just call onComplete after a short delay
     setTimeout(() => {
@@ -28,6 +36,7 @@ export default function UploadPhotoStep({
           onFileSelect={handleFileSelect}
           maxFileSize={10}
           acceptedTypes={["image/jpeg", "image/jpg", "image/png", "image/webp"]}
+          uploadedFile={uploadedFile}
         />
 
         <Typography variant="body2" color="text.secondary" align="center">

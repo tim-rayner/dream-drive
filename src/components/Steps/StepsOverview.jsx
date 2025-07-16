@@ -15,7 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ChooseLocationStep from "./ChooseLocationStep";
 import GenerateImageStep from "./GenerateImageStep";
 import UploadPhotoStep from "./UploadPhotoStep";
@@ -48,6 +48,58 @@ const StepsOverview = () => {
     1: false,
     2: false,
   });
+  const [uploadedFile, setUploadedFile] = useState(null);
+
+  // Save file to localStorage when it changes
+  useEffect(() => {
+    if (uploadedFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fileData = {
+          name: uploadedFile.name,
+          type: uploadedFile.type,
+          size: uploadedFile.size,
+          data: reader.result,
+        };
+        localStorage.setItem("uploadedFile", JSON.stringify(fileData));
+      };
+      reader.readAsDataURL(uploadedFile);
+    } else {
+      localStorage.removeItem("uploadedFile");
+    }
+  }, [uploadedFile]);
+
+  // Restore file from localStorage on component mount
+  useEffect(() => {
+    const savedFileData = localStorage.getItem("uploadedFile");
+    if (savedFileData) {
+      try {
+        const fileData = JSON.parse(savedFileData);
+        // Convert base64 back to File object
+        const byteString = atob(fileData.data.split(",")[1]);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: fileData.type });
+        const restoredFile = new File([blob], fileData.name, {
+          type: fileData.type,
+        });
+
+        setUploadedFile(restoredFile);
+        setStepCompletion((prev) => ({ ...prev, 0: true }));
+      } catch (error) {
+        console.error("Error restoring file from localStorage:", error);
+        localStorage.removeItem("uploadedFile");
+      }
+    }
+  }, []);
+
+  const handleFileUpload = useCallback((file) => {
+    setUploadedFile(file);
+    setStepCompletion((prev) => ({ ...prev, 0: true }));
+  }, []);
 
   const renderActiveStep = () => {
     switch (activeStep) {
@@ -57,6 +109,8 @@ const StepsOverview = () => {
             onComplete={() =>
               setStepCompletion((prev) => ({ ...prev, 0: true }))
             }
+            uploadedFile={uploadedFile}
+            onFileUpload={handleFileUpload}
           />
         );
       case 1:
@@ -81,6 +135,8 @@ const StepsOverview = () => {
             onComplete={() =>
               setStepCompletion((prev) => ({ ...prev, 0: true }))
             }
+            uploadedFile={uploadedFile}
+            onFileUpload={handleFileUpload}
           />
         );
     }
@@ -88,7 +144,7 @@ const StepsOverview = () => {
 
   const isStepEnabled = (stepIndex) => {
     if (stepIndex === 0) return true;
-    if (stepIndex === 1) return true;
+    if (stepIndex === 1) return stepCompletion[0];
     if (stepIndex === 2) return stepCompletion[0] && stepCompletion[1];
     return false;
   };
