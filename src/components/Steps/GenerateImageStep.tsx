@@ -115,17 +115,19 @@ export default function GenerateImageStep({
   }, [uploadedFile]);
 
   const handleGenerateImage = async () => {
+    console.log("GenerateImageStep - mapData received:", mapData);
+
     if (!carImageUrl || !sceneImage) {
       setError("Missing required data: car image or scene image");
       return;
     }
 
-    // If we don't have map position but have scene image, we can still proceed
-    // The backend will handle the case where coordinates are not available
+    // Require a valid map position - no fallback to 0,0
     if (!mapData.position) {
-      console.log(
-        "No map position available, proceeding with scene image only"
+      setError(
+        "Missing location data. Please select a location on the map before proceeding."
       );
+      return;
     }
 
     setCurrentStep("generating");
@@ -134,15 +136,27 @@ export default function GenerateImageStep({
     setGenerationDetails(null);
 
     try {
+      console.log("🚀 Starting image generation API call...");
+      console.log("📍 Sending coordinates to API:", {
+        lat: mapData.position.lat,
+        lng: mapData.position.lng,
+      });
+      console.log("⏰ Time of day:", timeOfDay);
+
       const result = await generateFinalImage({
         carImage: carImageUrl,
         sceneImage: sceneImage,
-        lat: mapData.position?.lat || 0, // Fallback to 0 if no position
-        lng: mapData.position?.lng || 0, // Fallback to 0 if no position
+        lat: mapData.position.lat,
+        lng: mapData.position.lng,
         timeOfDay,
       });
 
       if (result.success && result.imageUrl) {
+        console.log("✅ Image generation completed successfully!");
+        console.log("🎯 Place description:", result.placeDescription);
+        console.log("📝 Scene description:", result.sceneDescription);
+        console.log("🖼️ Generated image URL:", result.imageUrl);
+
         setFinalImageUrl(result.imageUrl);
         setGenerationDetails({
           placeDescription: result.placeDescription,
@@ -377,8 +391,8 @@ export default function GenerateImageStep({
 
   const isCarImageMissing = !carImageUrl;
   const isSceneImageMissing = !sceneImage;
-  // Check if we have either map position OR scene image (scene image indicates location was selected)
-  const isLocationMissing = !mapData.position && !sceneImage;
+  // Check if we have both map position AND scene image (both are required)
+  const isLocationMissing = !mapData.position || !sceneImage;
   const isGenerating = currentStep === "generating";
 
   return (
@@ -438,7 +452,7 @@ export default function GenerateImageStep({
             <Alert severity="warning" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 Please complete the previous steps to upload a car photo and
-                select a location before generating your scene.
+                select a location on the map before generating your scene.
               </Typography>
             </Alert>
           ) : currentStep === "completed" ? (

@@ -8,6 +8,10 @@ interface GoogleMapProps {
   className?: string;
   style?: React.CSSProperties;
   onSceneCapture?: (sceneImage: string) => void;
+  onMapDataUpdate?: (mapData: {
+    position: { lat: number; lng: number };
+    marker: unknown;
+  }) => void;
   showSearchBar?: boolean;
 }
 
@@ -17,6 +21,7 @@ interface MapState {
   marker: google.maps.marker.AdvancedMarkerElement | null;
   isStreetViewActive: boolean;
   isLoadingStreetView: boolean;
+  currentPov: { heading: number; pitch: number } | null;
 }
 
 const GoogleMap: React.FC<GoogleMapProps> = ({
@@ -27,6 +32,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   className = "",
   style = {},
   onSceneCapture,
+  onMapDataUpdate,
   showSearchBar = true,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -39,6 +45,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     marker: null,
     isStreetViewActive: false,
     isLoadingStreetView: false,
+    currentPov: null,
   });
 
   // Search state
@@ -131,6 +138,32 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           }
         );
 
+        // Add listener to track POV changes
+        streetView.addListener("pov_changed", () => {
+          const currentPov = streetView.getPov();
+          console.log("🔄 Street View POV changed:", currentPov);
+          // Store the current POV in state (only heading and pitch)
+          setMapState((prev) => ({
+            ...prev,
+            currentPov: {
+              heading: currentPov.heading,
+              pitch: currentPov.pitch,
+            },
+          }));
+        });
+
+        // Add listener to track position changes
+        streetView.addListener("position_changed", () => {
+          const currentPosition = streetView.getPosition();
+          const currentPov = streetView.getPov();
+          console.log("📍 Street View position changed:", {
+            position: currentPosition
+              ? { lat: currentPosition.lat(), lng: currentPosition.lng() }
+              : null,
+            pov: currentPov,
+          });
+        });
+
         // Link map and street view
         map.setStreetView(streetView);
 
@@ -151,7 +184,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             title: "Selected Location",
           });
 
-          // Switch to Street View
+          // Switch to Street View without resetting POV
           streetView.setPosition(position);
           streetView.setVisible(true);
 
@@ -159,9 +192,16 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           setMapState((prev) => ({ ...prev, isLoadingStreetView: true }));
 
           // Ensure Street View is properly initialized for the new location
+          // but preserve any user-set POV
           setTimeout(() => {
+            const currentPov = streetView.getPov();
+            console.log(
+              "🔄 Setting Street View position, current POV:",
+              currentPov
+            );
             streetView.setPosition(position);
             streetView.setVisible(true);
+            // Don't reset POV - let user control it
           }, 50);
 
           // Check if Street View is available at this location
@@ -183,10 +223,16 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                     chooseSceneButtonRef.current.style.display = "block";
                   }
 
-                  // Force Street View to reload with new position
+                  // Force Street View to reload with new position but preserve POV
                   setTimeout(() => {
+                    const currentPov = streetView.getPov();
+                    console.log(
+                      "🔄 Reloading Street View, preserving POV:",
+                      currentPov
+                    );
                     streetView.setPosition(position);
                     streetView.setVisible(true);
+                    // Don't reset POV - preserve user's view
                   }, 100);
 
                   // Add error handling for Street View loading
@@ -257,6 +303,16 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             marker,
             isStreetViewActive: true,
           }));
+
+          // Call the parent callback with the new map data
+          if (onMapDataUpdate) {
+            const mapData = {
+              position: { lat: position.lat(), lng: position.lng() },
+              marker,
+            };
+            console.log("Sending location data to parent:", mapData);
+            onMapDataUpdate(mapData);
+          }
         });
 
         setMapState((prev) => ({
@@ -315,6 +371,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         marker: null, // Remove marker
         isStreetViewActive: false,
         isLoadingStreetView: false,
+        currentPov: prev.currentPov, // Preserve current POV
       }));
     }
   };
@@ -334,10 +391,32 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         throw new Error("Position not available");
       }
 
-      // Create a Street View Static API URL
+      // Use the stored POV from state instead of getting it from panorama
+      console.log("📸 Getting current POV for capture...");
+      const currentPov = mapState.currentPov || panorama.getPov();
+      console.log("🎯 Final POV at capture moment:", currentPov);
+      console.log(
+        "💾 Using stored POV from state:",
+        mapState.currentPov ? "Yes" : "No"
+      );
+
+      console.log("Capturing Street View scene:", {
+        position: { lat: position.lat(), lng: position.lng() },
+        pov: { heading: currentPov.heading, pitch: currentPov.pitch },
+      });
+
+      // Create a Street View Static API URL with current view orientation
       const staticImageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${position.lat()},${position.lng()}&heading=${
-        pov.heading
-      }&pitch=${pov.pitch}&key=${apiKey}`;
+        currentPov.heading
+      }&pitch=${currentPov.pitch}&key=${apiKey}`;
+
+      console.log("🌐 Street View Static API URL:", staticImageUrl);
+      console.log("📊 POV parameters being sent:", {
+        heading: currentPov.heading,
+        pitch: currentPov.pitch,
+        headingType: typeof currentPov.heading,
+        pitchType: typeof currentPov.pitch,
+      });
 
       // Convert the static image to base64
       const response = await fetch(staticImageUrl);
@@ -347,27 +426,44 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64String = reader.result as string;
+          console.log(
+            "✅ Scene captured successfully with current orientation"
+          );
           resolve(base64String);
         };
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
     } catch (error) {
-      console.error("Error capturing scene:", error);
+      console.error("❌ Error capturing scene:", error);
       throw error;
     }
   };
 
   const handleChooseScene = async () => {
     try {
+      console.log("🎬 Starting scene capture process...");
+
+      // Add a small delay to ensure Street View is fully loaded and user's view is applied
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      console.log("📸 Capturing scene image...");
       const sceneImage = await handleSceneCapture();
+      console.log(
+        "✅ Scene image captured successfully, length:",
+        sceneImage.length
+      );
 
       // Call the parent callback with the captured scene
       if (onSceneCapture) {
+        console.log("📞 Calling onSceneCapture callback...");
         onSceneCapture(sceneImage);
+        console.log("✅ onSceneCapture callback completed");
+      } else {
+        console.warn("⚠️ onSceneCapture callback is not provided");
       }
     } catch (error) {
-      console.error("Failed to capture scene:", error);
+      console.error("❌ Failed to capture scene:", error);
       alert("Failed to capture scene. Please try again.");
     }
   };

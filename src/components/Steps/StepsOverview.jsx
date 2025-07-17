@@ -66,7 +66,13 @@ const StepsOverview = () => {
   // Save map data to localStorage when it changes
   useEffect(() => {
     if (mapData.position) {
-      localStorage.setItem("mapData", JSON.stringify(mapData));
+      // Only save the position data, not the marker object (which has circular references)
+      const mapDataToSave = {
+        position: mapData.position,
+        marker: null, // Don't save the marker object
+      };
+      localStorage.setItem("mapData", JSON.stringify(mapDataToSave));
+      console.log("Location data saved:", mapDataToSave);
     } else {
       localStorage.removeItem("mapData");
     }
@@ -140,13 +146,20 @@ const StepsOverview = () => {
   }, []);
 
   const handleSceneCapture = useCallback((capturedImage) => {
+    console.log(
+      "🎬 handleSceneCapture called with image length:",
+      capturedImage.length
+    );
     setSceneImage(capturedImage);
     setStepCompletion((prev) => ({ ...prev, 1: true }));
+    console.log("✅ Scene image set, moving to step 2");
     // Automatically move to step 3 (Generate Image)
     setActiveStep(2);
+    console.log("✅ Active step set to 2");
   }, []);
 
   const handleMapDataUpdate = useCallback((newMapData) => {
+    console.log("Location data received:", newMapData);
     setMapData(newMapData);
   }, []);
 

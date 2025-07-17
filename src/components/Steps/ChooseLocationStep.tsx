@@ -50,6 +50,7 @@ export default function ChooseLocationStep({
         initialZoom={12}
         mapId="DEMO_MAP_ID"
         onSceneCapture={onSceneCapture}
+        onMapDataUpdate={onMapDataUpdate}
         style={{
           height: "500px",
           borderRadius: "12px",
