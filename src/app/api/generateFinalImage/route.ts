@@ -8,30 +8,6 @@ interface GenerateFinalImageRequest {
   timeOfDay: "sunrise" | "afternoon" | "dusk" | "night";
 }
 
-interface ReplicatePrediction {
-  id: string;
-  version: string;
-  input: Record<string, unknown>;
-  logs: string;
-  output: string | null;
-  data_removed: boolean;
-  error: string | null;
-  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
-  created_at: string;
-  started_at: string;
-  completed_at: string;
-  urls: {
-    cancel: string;
-    get: string;
-    stream: string;
-    web: string;
-  };
-  metrics: {
-    image_count: number;
-    predict_time: number;
-  };
-}
-
 // Reverse geocoding to get place names
 async function getPlaceDescription(lat: number, lng: number): Promise<string> {
   console.log("🚀 getPlaceDescription function called");
@@ -241,38 +217,29 @@ async function getPlaceDescription(lat: number, lng: number): Promise<string> {
   }
 }
 
-// Generate scene description using BLIP
-async function generateSceneDescription(
-  sceneImage: string,
-  placeDescription: string
-): Promise<string> {
+// Helper to call Replicate API with fetch
+async function callReplicate({
+  version,
+  input,
+}: {
+  version: string;
+  input: unknown;
+}): Promise<unknown> {
   const replicateToken = process.env.REPLICATE_API_TOKEN;
   if (!replicateToken) throw new Error("Replicate API token not configured");
-
   const response = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
     headers: {
       Authorization: `Token ${replicateToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      version:
-        "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
-      input: {
-        image: sceneImage, // base64 data URI
-        task: "image_captioning",
-        caption: `Describe this place in a natural, engaging way. Focus on the visual elements, atmosphere, and mood. Location: ${placeDescription}`,
-      },
-    }),
+    body: JSON.stringify({ version, input }),
   });
-
   if (!response.ok) {
     const errorData = await response.text();
-    throw new Error(`LLM API error: ${response.status} - ${errorData}`);
+    throw new Error(`Replicate API error: ${response.status} - ${errorData}`);
   }
-
   const prediction = await response.json();
-
   // Poll for completion
   let attempts = 0;
   const maxAttempts = 60;
@@ -291,112 +258,95 @@ async function generateSceneDescription(
       throw new Error(`Status check failed: ${statusResponse.status}`);
     const statusData = await statusResponse.json();
     if (statusData.status === "succeeded") {
-      if (statusData.output && typeof statusData.output === "string") {
-        return statusData.output;
-      }
-      if (Array.isArray(statusData.output) && statusData.output.length > 0) {
-        return statusData.output[0];
-      }
-      throw new Error("No output from BLIP");
+      return statusData.output;
     } else if (statusData.status === "failed") {
-      throw new Error("BLIP generation failed");
+      throw new Error("Replicate generation failed");
     }
     attempts++;
   }
-  throw new Error("BLIP generation timed out");
+  throw new Error("Replicate generation timed out");
+}
+
+// Generate scene description using BLIP
+async function generateSceneDescription(
+  sceneImage: string,
+  placeDescription: string
+): Promise<string> {
+  const output = await callReplicate({
+    version:
+      "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
+    input: {
+      image: sceneImage, // base64 data URI
+      task: "image_captioning",
+      caption: `Describe this place in a natural, engaging way. Focus on the visual elements, atmosphere, and mood. Location: ${placeDescription}`,
+    },
+  });
+  if (typeof output === "string") return output;
+  if (
+    Array.isArray(output) &&
+    output.length > 0 &&
+    typeof output[0] === "string"
+  )
+    return output[0];
+  throw new Error("No output from BLIP");
+}
+
+// Analyze car image to get specific details
+async function analyzeCarImage(carImage: string): Promise<string> {
+  try {
+    const output = await callReplicate({
+      version:
+        "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
+      input: {
+        image: carImage,
+        task: "image_captioning",
+        caption:
+          "Describe this car in detail including make, model, color, body style, wheels, headlights, and any distinctive features. Be specific about the car's appearance.",
+      },
+    });
+    if (typeof output === "string") return output;
+    if (
+      Array.isArray(output) &&
+      output.length > 0 &&
+      typeof output[0] === "string"
+    )
+      return output[0];
+    throw new Error("No output from car analysis");
+  } catch (error) {
+    console.error("Error analyzing car image:", error);
+    return "a car"; // Fallback
+  }
 }
 
 // Generate final image with car in scene
 async function generateFinalImage(
   carImage: string,
+  sceneImage: string,
   sceneDescription: string,
   timeOfDay: string,
   placeDescription: string
 ): Promise<string> {
-  try {
-    const replicateToken = process.env.REPLICATE_API_TOKEN;
-    if (!replicateToken) {
-      throw new Error("Replicate API token not configured");
-    }
-
-    // Compose the final prompt with location and car preservation
-    const finalPrompt = `${sceneDescription} ${timeOfDay} in ${placeDescription}. A photorealistic Nissan GT-R is seamlessly integrated into this scene, maintaining the exact original car's appearance, color, and details while blending naturally with the environment. The car should look exactly like the reference image.`;
-
-    console.log("🎨 Final image generation prompt:", finalPrompt);
-    console.log("📊 Prompt components:", {
-      sceneDescription,
-      timeOfDay,
-      placeDescription,
-    });
-
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${replicateToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version: "recraft-ai/recraft-v3",
-        input: {
-          prompt: finalPrompt,
-          image: carImage,
-          strength: 0.6,
-          num_inference_steps: 50,
-          guidance_scale: 11,
-          seed: Math.floor(Math.random() * 1000000),
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(
-        `Image generation API error: ${response.status} - ${errorData}`
-      );
-    }
-
-    const prediction: ReplicatePrediction = await response.json();
-
-    // Poll for completion
-    let attempts = 0;
-    const maxAttempts = 120; // 2 minutes max for image generation
-
-    while (attempts < maxAttempts) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const statusResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${prediction.id}`,
-        {
-          headers: {
-            Authorization: `Token ${replicateToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!statusResponse.ok) {
-        throw new Error(`Status check failed: ${statusResponse.status}`);
-      }
-
-      const statusData: ReplicatePrediction = await statusResponse.json();
-
-      if (statusData.status === "succeeded") {
-        if (statusData.output && typeof statusData.output === "string") {
-          return statusData.output;
-        }
-        throw new Error("No output from image generation");
-      } else if (statusData.status === "failed") {
-        throw new Error("Image generation failed");
-      }
-
-      attempts++;
-    }
-
-    throw new Error("Image generation timed out");
-  } catch (error) {
-    console.error("Error generating final image:", error);
-    throw error;
-  }
+  // Compose the optimized prompt
+  const carDescription = await analyzeCarImage(carImage);
+  console.log("🚗 Car analysis result:", carDescription);
+  const finalPrompt = `A photorealistic, high-detail image of ${sceneDescription} ${timeOfDay} in ${placeDescription}. The foreground features ${carDescription} from the reference image, perfectly preserved in every detail (make, model, color, body style, wheels, headlights, taillights, reflections, and all visual features). The car must be seamlessly integrated into the new scene, with natural lighting and shadows matching the background. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
+  console.log("🎨 Final image generation prompt:", finalPrompt);
+  const output = await callReplicate({
+    version: "flux-kontext-apps/multi-image-kontext-pro",
+    input: {
+      input_image_1: carImage,
+      input_image_2: sceneImage,
+      prompt: finalPrompt,
+    },
+  });
+  if (typeof output === "string") return output;
+  if (
+    Array.isArray(output) &&
+    output.length > 0 &&
+    typeof output[0] === "string"
+  )
+    return output[0];
+  throw new Error("No output from image generation");
 }
 
 export async function POST(request: NextRequest) {
@@ -486,6 +436,7 @@ export async function POST(request: NextRequest) {
 
     const finalImageUrl = await generateFinalImage(
       body.carImage,
+      body.sceneImage,
       sceneDescription,
       timeOfDayText,
       placeDescription

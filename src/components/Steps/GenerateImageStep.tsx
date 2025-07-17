@@ -105,12 +105,22 @@ export default function GenerateImageStep({
     sceneDescription?: string;
   } | null>(null);
 
-  // Convert uploaded file to URL for display
+  // Convert uploaded file to base64 for preview and API call
   useEffect(() => {
     if (uploadedFile) {
-      const url = URL.createObjectURL(uploadedFile);
-      setCarImageUrl(url);
-      return () => URL.revokeObjectURL(url);
+      const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      };
+      fileToBase64(uploadedFile).then((base64) => {
+        setCarImageUrl(base64);
+      });
+    } else {
+      setCarImageUrl(null);
     }
   }, [uploadedFile]);
 
