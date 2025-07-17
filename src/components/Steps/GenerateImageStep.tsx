@@ -446,21 +446,6 @@ export default function GenerateImageStep({
               <Typography variant="body2">
                 ✅ Generation complete! Your AI scene is ready.
               </Typography>
-              {generationDetails && (
-                <Box sx={{ mt: 2, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Location:</strong>{" "}
-                    {generationDetails.placeDescription}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Scene:</strong> {generationDetails.sceneDescription}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Time:</strong>{" "}
-                    {timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)}
-                  </Typography>
-                </Box>
-              )}
             </Alert>
           ) : (
             <Alert severity="info" sx={{ mb: 3 }}>

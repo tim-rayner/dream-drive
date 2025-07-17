@@ -201,7 +201,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                           streetViewRef.current &&
                           streetViewRef.current.children.length === 0
                         ) {
-                          alert(
+                          console.log(
                             "Street View failed to load. This may be due to rate limiting or the location not having Street View coverage."
                           );
                           // Return to map view
@@ -234,8 +234,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                   setTimeout(checkStreetViewLoaded, 1000);
                 }
               } else {
-                // Street View not available, show alert
-                alert(
+                // Street View not available, log message
+                console.log(
                   "Street View is not available at this location. Please try a different location."
                 );
                 setMapState((prev) => ({
@@ -366,9 +366,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       if (onSceneCapture) {
         onSceneCapture(sceneImage);
       }
-
-      // Show success message
-      alert("Scene captured successfully! Moving to step 3.");
     } catch (error) {
       console.error("Failed to capture scene:", error);
       alert("Failed to capture scene. Please try again.");
