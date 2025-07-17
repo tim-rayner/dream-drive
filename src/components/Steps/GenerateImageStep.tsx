@@ -1,7 +1,11 @@
 import {
+  Brightness5 as AfternoonIcon,
   AutoAwesome as AutoAwesomeIcon,
+  WbTwilight as DuskIcon,
   Map as MapIcon,
+  Nightlight as NightIcon,
   PhotoCamera as PhotoCameraIcon,
+  WbSunny as SunriseIcon,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -12,7 +16,8 @@ import {
   Chip,
   CircularProgress,
   Stack,
-  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -27,80 +32,35 @@ interface GenerateImageStepProps {
   };
 }
 
-interface ReplicatePrediction {
-  id: string;
-  version: string;
-  input: Record<string, unknown>;
-  logs: string;
-  output: string | null; // single image URL (.webp or .png)
-  data_removed: boolean;
-  error: string | null;
-  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
-  created_at: string;
-  started_at: string;
-  completed_at: string;
-  urls: {
-    cancel: string;
-    get: string;
-    stream: string;
-    web: string;
-  };
-  metrics: {
-    image_count: number;
-    predict_time: number;
-  };
-}
+type TimeOfDay = "sunrise" | "afternoon" | "dusk" | "night";
 
-type GenerationStep = "idle" | "step1" | "step2" | "completed";
+type GenerationStep = "idle" | "generating" | "completed";
 
-const generateImage = async ({
-  promptText,
-  inputImage,
-  step,
+const generateFinalImage = async ({
+  carImage,
+  sceneImage,
+  lat,
+  lng,
+  timeOfDay,
 }: {
-  promptText: string;
-  inputImage: string;
-  step: "step1" | "step2";
+  carImage: string;
+  sceneImage: string;
+  lat: number;
+  lng: number;
+  timeOfDay: TimeOfDay;
 }) => {
   try {
-    let basePrompt: string;
-    let strength: number;
-    let guidanceScale: number;
-
-    if (step === "step1") {
-      // Step 1: Car enhancement
-      basePrompt =
-        "Hyper-realistic render of a parked car, 35mm DSLR photo, cinematic lighting, photorealistic style";
-      strength = 0.7; // Stronger influence to enhance the car
-      guidanceScale = 12; // Strong steering for car enhancement
-    } else {
-      // Step 2: Scene blending
-      basePrompt =
-        "Blend car into city street scene, moody lighting, photorealism, seamless integration";
-      strength = 0.6; // Moderate influence to blend with scene
-      guidanceScale = 11; // Balanced steering for scene blending
-    }
-
-    const userPrompt = promptText.trim();
-    const finalPrompt = userPrompt
-      ? `${basePrompt}, ${userPrompt}`
-      : basePrompt;
-
-    const response = await fetch("/api/replicate", {
+    const response = await fetch("/api/generateFinalImage", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "recraft-ai/recraft-v3",
-        input: {
-          prompt: finalPrompt,
-          image: inputImage,
-          strength: strength,
-          num_inference_steps: 50, // high fidelity
-          guidance_scale: guidanceScale,
-          seed: Math.floor(Math.random() * 1000000), // random seed for variety
-        },
+        carImage,
+        sceneImage,
+        lat,
+        lng,
+        timeOfDay,
       }),
     });
 
@@ -118,7 +78,7 @@ const generateImage = async ({
 
     return result;
   } catch (error) {
-    console.error("Error in generateImage:", error);
+    console.error("Error in generateFinalImage:", error);
 
     // Re-throw with a user-friendly message
     if (error instanceof Error) {
@@ -135,15 +95,15 @@ export default function GenerateImageStep({
   sceneImage,
   mapData,
 }: GenerateImageStepProps) {
-  const [promptText, setPromptText] = useState("");
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("afternoon");
   const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<GenerationStep>("idle");
-  const [enhancedCarUrl, setEnhancedCarUrl] = useState<string | null>(null);
-  const [finalSceneUrl, setFinalSceneUrl] = useState<string | null>(null);
+  const [finalImageUrl, setFinalImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [predictionId, setPredictionId] = useState<string | null>(null);
-  const [step1Prompt, setStep1Prompt] = useState("");
-  const [step2Prompt, setStep2Prompt] = useState("");
+  const [generationDetails, setGenerationDetails] = useState<{
+    placeDescription?: string;
+    sceneDescription?: string;
+  } | null>(null);
 
   // Convert uploaded file to URL for display
   useEffect(() => {
@@ -154,114 +114,46 @@ export default function GenerateImageStep({
     }
   }, [uploadedFile]);
 
-  // Poll for prediction status
-  useEffect(() => {
-    if (!predictionId || currentStep === "idle" || currentStep === "completed")
-      return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/replicate?id=${predictionId}`, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const prediction: ReplicatePrediction = await response.json();
-
-        if (prediction.status === "succeeded") {
-          if (prediction.output && typeof prediction.output === "string") {
-            if (currentStep === "step1") {
-              setEnhancedCarUrl(prediction.output);
-              setCurrentStep("step2");
-              // Automatically start step 2
-              handleStep2Generation(prediction.output);
-            } else if (currentStep === "step2") {
-              setFinalSceneUrl(prediction.output);
-              setCurrentStep("completed");
-            }
-          }
-          clearInterval(pollInterval);
-        } else if (prediction.status === "failed") {
-          setCurrentStep("idle");
-          setError("Our AI is down at the moment, come back soon...");
-          clearInterval(pollInterval);
-        }
-        // Continue polling for "starting" and "processing" statuses
-      } catch (error) {
-        console.error("Error polling prediction:", error);
-        setCurrentStep("idle");
-        setError("Our AI is down at the moment, come back soon...");
-        clearInterval(pollInterval);
-      }
-    }, 1000); // Poll every second
-
-    return () => clearInterval(pollInterval);
-  }, [predictionId, currentStep]);
-
-  const handleStep1Generation = async () => {
-    if (!carImageUrl) {
-      setError("No car image available");
+  const handleGenerateImage = async () => {
+    if (!carImageUrl || !sceneImage) {
+      setError("Missing required data: car image or scene image");
       return;
     }
 
-    setCurrentStep("step1");
+    // If we don't have map position but have scene image, we can still proceed
+    // The backend will handle the case where coordinates are not available
+    if (!mapData.position) {
+      console.log(
+        "No map position available, proceeding with scene image only"
+      );
+    }
+
+    setCurrentStep("generating");
     setError(null);
-    setEnhancedCarUrl(null);
-    setFinalSceneUrl(null);
+    setFinalImageUrl(null);
+    setGenerationDetails(null);
 
     try {
-      const prediction = await generateImage({
-        promptText: step1Prompt,
-        inputImage: carImageUrl,
-        step: "step1",
+      const result = await generateFinalImage({
+        carImage: carImageUrl,
+        sceneImage: sceneImage,
+        lat: mapData.position?.lat || 0, // Fallback to 0 if no position
+        lng: mapData.position?.lng || 0, // Fallback to 0 if no position
+        timeOfDay,
       });
 
-      // Validate prediction has required fields
-      if (!prediction || !prediction.id) {
-        throw new Error("Invalid prediction response from API");
-      }
-
-      setPredictionId(prediction.id);
-      // The polling useEffect will handle the rest
-    } catch (error) {
-      console.error("Error starting step 1 generation:", error);
-      setCurrentStep("idle");
-
-      if (error instanceof Error) {
-        setError(error.message);
+      if (result.success && result.imageUrl) {
+        setFinalImageUrl(result.imageUrl);
+        setGenerationDetails({
+          placeDescription: result.placeDescription,
+          sceneDescription: result.sceneDescription,
+        });
+        setCurrentStep("completed");
       } else {
-        setError("Our AI is down at the moment, come back soon...");
+        throw new Error("No image URL returned from API");
       }
-    }
-  };
-
-  const handleStep2Generation = async (enhancedCarImageUrl: string) => {
-    if (!sceneImage) {
-      setError("No scene image available");
-      return;
-    }
-
-    try {
-      const prediction = await generateImage({
-        promptText: step2Prompt,
-        inputImage: enhancedCarImageUrl,
-        step: "step2",
-      });
-
-      // Validate prediction has required fields
-      if (!prediction || !prediction.id) {
-        throw new Error("Invalid prediction response from API");
-      }
-
-      setPredictionId(prediction.id);
-      // The polling useEffect will handle the rest
     } catch (error) {
-      console.error("Error starting step 2 generation:", error);
+      console.error("Error generating image:", error);
       setCurrentStep("idle");
 
       if (error instanceof Error) {
@@ -273,21 +165,18 @@ export default function GenerateImageStep({
   };
 
   const handleComplete = () => {
-    if (finalSceneUrl) {
+    if (finalImageUrl) {
       // Save the generated image URL to localStorage
-      localStorage.setItem("generatedImageUrl", finalSceneUrl);
-      onComplete(finalSceneUrl);
+      localStorage.setItem("generatedImageUrl", finalImageUrl);
+      onComplete(finalImageUrl);
     }
   };
 
   const handleRestart = () => {
     setCurrentStep("idle");
-    setEnhancedCarUrl(null);
-    setFinalSceneUrl(null);
+    setFinalImageUrl(null);
     setError(null);
-    setPredictionId(null);
-    setStep1Prompt("");
-    setStep2Prompt("");
+    setGenerationDetails(null);
   };
 
   const ImagePreviewCard = ({
@@ -429,9 +318,68 @@ export default function GenerateImageStep({
     </Card>
   );
 
+  const TimeOfDayToggle = () => (
+    <Box sx={{ mb: 3 }}>
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+        Time of Day
+      </Typography>
+      <ToggleButtonGroup
+        value={timeOfDay}
+        exclusive
+        onChange={(_, newValue) => {
+          if (newValue !== null) {
+            setTimeOfDay(newValue);
+          }
+        }}
+        aria-label="time of day"
+        sx={{
+          "& .MuiToggleButton-root": {
+            borderRadius: "12px",
+            px: 3,
+            py: 1.5,
+            textTransform: "none",
+            fontWeight: 600,
+            border: "2px solid",
+            borderColor: "divider",
+            "&.Mui-selected": {
+              backgroundColor: "primary.main",
+              color: "white",
+              borderColor: "primary.main",
+              "&:hover": {
+                backgroundColor: "primary.dark",
+              },
+            },
+            "&:hover": {
+              backgroundColor: "grey.100",
+            },
+          },
+        }}
+      >
+        <ToggleButton value="sunrise" aria-label="sunrise">
+          <SunriseIcon sx={{ mr: 1 }} />
+          Sunrise
+        </ToggleButton>
+        <ToggleButton value="afternoon" aria-label="afternoon">
+          <AfternoonIcon sx={{ mr: 1 }} />
+          Afternoon
+        </ToggleButton>
+        <ToggleButton value="dusk" aria-label="dusk">
+          <DuskIcon sx={{ mr: 1 }} />
+          Dusk
+        </ToggleButton>
+        <ToggleButton value="night" aria-label="night">
+          <NightIcon sx={{ mr: 1 }} />
+          Night
+        </ToggleButton>
+      </ToggleButtonGroup>
+    </Box>
+  );
+
   const isCarImageMissing = !carImageUrl;
   const isSceneImageMissing = !sceneImage;
-  const isGenerating = currentStep === "step1" || currentStep === "step2";
+  // Check if we have either map position OR scene image (scene image indicates location was selected)
+  const isLocationMissing = !mapData.position && !sceneImage;
+  const isGenerating = currentStep === "generating";
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", width: "100%" }}>
@@ -439,68 +387,33 @@ export default function GenerateImageStep({
         {/* Header */}
         <Box sx={{ textAlign: "center" }}>
           <Typography variant="h4" component="h2" fontWeight={600} gutterBottom>
-            Two-Step AI Generation
+            AI Scene Generation
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Step 1: Enhance your car • Step 2: Blend into your chosen location
+            Upload your car photo, select a location, choose time of day, and
+            let AI create your dream scene
           </Typography>
         </Box>
 
-        {/* Step 1: Car Enhancement */}
+        {/* Time of Day Selection */}
+        <TimeOfDayToggle />
+
+        {/* Image Previews */}
         <Box>
           <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
-            Step 1: Car Enhancement
+            Your Inputs
           </Typography>
 
           <Stack direction={{ xs: "column", md: "row" }} spacing={3}>
             <Box sx={{ flex: 1 }}>
               <ImagePreviewCard
-                title="Original Car"
+                title="Your Car"
                 imageUrl={carImageUrl}
                 icon={<PhotoCameraIcon />}
                 isMissing={isCarImageMissing}
                 stepNumber={1}
               />
             </Box>
-            <Box sx={{ flex: 1 }}>
-              <ImagePreviewCard
-                title="Enhanced Car"
-                imageUrl={enhancedCarUrl}
-                icon={<AutoAwesomeIcon />}
-                isMissing={!enhancedCarUrl}
-                stepNumber={1}
-              />
-            </Box>
-          </Stack>
-
-          <Box sx={{ mt: 3 }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={2}
-              label="Car enhancement details (optional)"
-              placeholder="e.g., 'Make it look like a luxury car commercial with dramatic lighting'"
-              value={step1Prompt}
-              onChange={(e) => setStep1Prompt(e.target.value)}
-              variant="outlined"
-              disabled={isGenerating}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "12px",
-                },
-              }}
-              helperText="Add specific details to enhance your car image."
-            />
-          </Box>
-        </Box>
-
-        {/* Step 2: Scene Blending */}
-        <Box>
-          <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
-            Step 2: Scene Blending
-          </Typography>
-
-          <Stack direction={{ xs: "column", md: "row" }} spacing={3}>
             <Box sx={{ flex: 1 }}>
               <ImagePreviewCard
                 title="Chosen Location"
@@ -510,36 +423,7 @@ export default function GenerateImageStep({
                 stepNumber={2}
               />
             </Box>
-            <Box sx={{ flex: 1 }}>
-              <ImagePreviewCard
-                title="Final Scene"
-                imageUrl={finalSceneUrl}
-                icon={<AutoAwesomeIcon />}
-                isMissing={!finalSceneUrl}
-                stepNumber={2}
-              />
-            </Box>
           </Stack>
-
-          <Box sx={{ mt: 3 }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={2}
-              label="Scene blending details (optional)"
-              placeholder="e.g., 'Blend car into sunset city street with moody atmosphere'"
-              value={step2Prompt}
-              onChange={(e) => setStep2Prompt(e.target.value)}
-              variant="outlined"
-              disabled={isGenerating}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "12px",
-                },
-              }}
-              helperText="Add specific details to guide the scene blending."
-            />
-          </Box>
         </Box>
 
         {/* Status and Action */}
@@ -550,7 +434,7 @@ export default function GenerateImageStep({
             </Alert>
           )}
 
-          {isCarImageMissing || isSceneImageMissing ? (
+          {isCarImageMissing || isSceneImageMissing || isLocationMissing ? (
             <Alert severity="warning" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 Please complete the previous steps to upload a car photo and
@@ -562,15 +446,28 @@ export default function GenerateImageStep({
               <Typography variant="body2">
                 ✅ Generation complete! Your AI scene is ready.
               </Typography>
+              {generationDetails && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Location:</strong>{" "}
+                    {generationDetails.placeDescription}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Scene:</strong> {generationDetails.sceneDescription}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Time:</strong>{" "}
+                    {timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)}
+                  </Typography>
+                </Box>
+              )}
             </Alert>
           ) : (
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                {currentStep === "step1"
-                  ? "🔄 Step 1: Enhancing your car image..."
-                  : currentStep === "step2"
-                  ? "🔄 Step 2: Blending car into scene..."
-                  : "Ready to start two-step generation process."}
+                {isGenerating
+                  ? "🔄 Generating your AI scene..."
+                  : "Ready to generate your dream scene with AI."}
               </Typography>
             </Alert>
           )}
@@ -580,8 +477,10 @@ export default function GenerateImageStep({
               variant="contained"
               size="large"
               fullWidth
-              disabled={isCarImageMissing || isSceneImageMissing}
-              onClick={handleStep1Generation}
+              disabled={
+                isCarImageMissing || isSceneImageMissing || isLocationMissing
+              }
+              onClick={handleGenerateImage}
               sx={{
                 py: 2,
                 borderRadius: "12px",
@@ -600,7 +499,7 @@ export default function GenerateImageStep({
                 },
               }}
             >
-              🎨 Start Two-Step Generation
+              🎨 Generate AI Scene
             </Button>
           )}
 
@@ -608,12 +507,10 @@ export default function GenerateImageStep({
             <Box sx={{ textAlign: "center", py: 3 }}>
               <CircularProgress size={60} sx={{ mb: 2 }} />
               <Typography variant="h6" color="primary">
-                {currentStep === "step1"
-                  ? "Enhancing your car..."
-                  : "Blending into scene..."}
+                Creating your dream scene...
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                This may take 30-60 seconds per step
+                This may take 1-2 minutes
               </Typography>
             </Box>
           )}
@@ -663,7 +560,7 @@ export default function GenerateImageStep({
         </Box>
 
         {/* Final Scene Display */}
-        {finalSceneUrl && (
+        {finalImageUrl && (
           <Box>
             <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
               Your Generated Scene
@@ -691,7 +588,7 @@ export default function GenerateImageStep({
                   }}
                 >
                   <img
-                    src={finalSceneUrl}
+                    src={finalImageUrl}
                     alt="Generated AI Scene"
                     style={{
                       width: "100%",
