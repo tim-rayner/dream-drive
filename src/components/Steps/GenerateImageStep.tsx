@@ -16,6 +16,7 @@ import {
   Chip,
   CircularProgress,
   Stack,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -42,12 +43,14 @@ const generateFinalImage = async ({
   lat,
   lng,
   timeOfDay,
+  customInstructions, // Add customInstructions to parameters
 }: {
   carImage: string;
   sceneImage: string;
   lat: number;
   lng: number;
   timeOfDay: TimeOfDay;
+  customInstructions: string; // Add customInstructions to parameters
 }) => {
   try {
     const response = await fetch("/api/generateFinalImage", {
@@ -61,6 +64,7 @@ const generateFinalImage = async ({
         lat,
         lng,
         timeOfDay,
+        customInstructions, // Pass to backend
       }),
     });
 
@@ -104,6 +108,7 @@ export default function GenerateImageStep({
     placeDescription?: string;
     sceneDescription?: string;
   } | null>(null);
+  const [customInstructions, setCustomInstructions] = useState<string>("");
 
   // Convert uploaded file to base64 for preview and API call
   useEffect(() => {
@@ -159,6 +164,7 @@ export default function GenerateImageStep({
         lat: mapData.position.lat,
         lng: mapData.position.lng,
         timeOfDay,
+        customInstructions, // Pass to backend
       });
 
       if (result.success && result.imageUrl) {
@@ -421,6 +427,21 @@ export default function GenerateImageStep({
 
         {/* Time of Day Selection */}
         <TimeOfDayToggle />
+
+        {/* Custom Instructions Input */}
+        <TextField
+          label="Optional: Add extra details for the AI (e.g. mood, background elements, weather...)"
+          multiline
+          minRows={2}
+          maxRows={6}
+          value={customInstructions}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setCustomInstructions(e.target.value)
+          }
+          variant="outlined"
+          fullWidth
+          sx={{ mb: 2 }}
+        />
 
         {/* Image Previews */}
         <Box>

@@ -6,6 +6,7 @@ interface GenerateFinalImageRequest {
   lat: number;
   lng: number;
   timeOfDay: "sunrise" | "afternoon" | "dusk" | "night";
+  customInstructions?: string; // Add optional customInstructions
 }
 
 // Reverse geocoding to get place names
@@ -324,12 +325,16 @@ async function generateFinalImage(
   sceneImage: string,
   sceneDescription: string,
   timeOfDay: string,
-  placeDescription: string
+  placeDescription: string,
+  customInstructions?: string
 ): Promise<string> {
-  // Compose the optimized prompt
+  // Compose the improved prompt
   const carDescription = await analyzeCarImage(carImage);
   console.log("🚗 Car analysis result:", carDescription);
-  const finalPrompt = `A photorealistic, high-detail image of ${sceneDescription} ${timeOfDay} in ${placeDescription}. The foreground features ${carDescription} from the reference image, perfectly preserved in every detail (make, model, color, body style, wheels, headlights, taillights, reflections, and all visual features). The car must be seamlessly integrated into the new scene, with natural lighting and shadows matching the background. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
+  let finalPrompt = `Generate a single, photorealistic image of the car from the uploaded photo, placed in the provided location scene (${sceneDescription} ${timeOfDay} in ${placeDescription}). CRITICAL: Remove ALL text, overlays, watermarks, logos, copyright notices, or any Google-related elements (including "Google", "Google Maps", "© Google", or any similar text) from both the car image and the location image. The final image must contain NO text, watermarks, or overlays whatsoever. IMPORTANT: The time of day must be ${timeOfDay} - if night is selected, the scene must be dark with night lighting, not bright daylight. Only use the car from the uploaded image—remove any overlays, watermarks, text, or unrelated elements from the car as well. Do not generate multiple angles, split views, or collages—output only one natural, realistic composition. Do not invent or add any other vehicles, objects, or features. The background should be the provided location image, and the car should be seamlessly integrated with natural lighting and shadows matching the ${timeOfDay} setting. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
+  if (customInstructions && customInstructions.trim().length > 0) {
+    finalPrompt += ` ${customInstructions.trim()}`;
+  }
   console.log("🎨 Final image generation prompt:", finalPrompt);
   const output = await callReplicate({
     version: "flux-kontext-apps/multi-image-kontext-pro",
@@ -439,7 +444,8 @@ export async function POST(request: NextRequest) {
       body.sceneImage,
       sceneDescription,
       timeOfDayText,
-      placeDescription
+      placeDescription,
+      body.customInstructions
     );
     console.log("Final image generated:", finalImageUrl);
 
