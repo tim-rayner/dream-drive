@@ -22,6 +22,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useCredits } from "../../context/CreditsContext";
+import { spendCredit } from "../../lib/creditsService";
 
 interface GenerateImageStepProps {
   onComplete: (imageUrl?: string) => void;
@@ -109,6 +111,8 @@ export default function GenerateImageStep({
     sceneDescription?: string;
   } | null>(null);
   const [customInstructions, setCustomInstructions] = useState<string>("");
+  const [creditError, setCreditError] = useState<string | null>(null);
+  const { credits, refreshCredits } = useCredits();
 
   // Convert uploaded file to base64 for preview and API call
   useEffect(() => {
@@ -147,10 +151,29 @@ export default function GenerateImageStep({
 
     setCurrentStep("generating");
     setError(null);
+    setCreditError(null);
     setFinalImageUrl(null);
     setGenerationDetails(null);
 
     try {
+      // First, spend a credit
+      console.log("💰 Spending credit before image generation...");
+      const creditResult = await spendCredit();
+
+      if (!creditResult.success) {
+        setCurrentStep("idle");
+        setCreditError(creditResult.error || "Failed to spend credit");
+        return;
+      }
+
+      console.log(
+        "✅ Credit spent successfully. Remaining credits:",
+        creditResult.remainingCredits
+      );
+
+      // Refresh credits in the context to update the navbar
+      await refreshCredits();
+
       console.log("🚀 Starting image generation API call...");
       console.log("📍 Sending coordinates to API:", {
         lat: mapData.position.lat,
@@ -476,6 +499,14 @@ export default function GenerateImageStep({
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
               <Typography variant="body2">{error}</Typography>
+            </Alert>
+          )}
+
+          {creditError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                💰 {creditError} - Please purchase more credits to continue.
+              </Typography>
             </Alert>
           )}
 
