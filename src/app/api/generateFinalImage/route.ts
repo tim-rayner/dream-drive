@@ -34,25 +34,46 @@ interface ReplicatePrediction {
 
 // Reverse geocoding to get place names
 async function getPlaceDescription(lat: number, lng: number): Promise<string> {
+  console.log("🚀 getPlaceDescription function called");
   try {
     console.log(`🔍 Reverse geocoding coordinates: ${lat}, ${lng}`);
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     console.log(
-      `🔑 Using API key: ${
-        process.env.GOOGLE_MAPS_API_KEY ? "Present" : "Missing"
+      `🔑 Environment variable check: ${
+        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? "Present" : "Missing"
       }`
     );
 
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+    if (!apiKey) {
+      console.error(
+        "❌ Google Maps API key is missing from environment variables"
+      );
+      throw new Error("Google Maps API key is missing");
+    }
+
+    console.log(`🔑 API key present: ${apiKey ? "Yes" : "No"}`);
+    console.log(`🔑 API key length: ${apiKey.length}`);
+    console.log(`🔑 API key starts with: ${apiKey.substring(0, 10)}...`);
+
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
     console.log(
       `🌐 Geocoding URL: ${geocodeUrl.replace(
-        process.env.GOOGLE_MAPS_API_KEY || "",
+        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
         "[API_KEY]"
       )}`
     );
+    console.log(`🔍 Full URL (with key): ${geocodeUrl}`);
 
     const response = await fetch(geocodeUrl);
     console.log(
       `📡 Geocoding response status: ${response.status} ${response.statusText}`
+    );
+
+    // Log response headers for debugging
+    console.log(
+      "📋 Response headers:",
+      Object.fromEntries(response.headers.entries())
     );
 
     if (!response.ok) {
@@ -66,9 +87,38 @@ async function getPlaceDescription(lat: number, lng: number): Promise<string> {
     const data = await response.json();
     console.log("📍 Raw geocoding response:", JSON.stringify(data, null, 2));
 
-    if (data.status !== "OK" || !data.results || data.results.length === 0) {
+    if (data.status !== "OK") {
+      console.error("❌ Geocoding API returned status:", data.status);
+      if (data.error_message) {
+        console.error("❌ Error message:", data.error_message);
+      }
+
+      // Handle specific error cases
+      if (data.status === "REQUEST_DENIED") {
+        console.error("❌ Request denied - check API key and billing");
+        console.error(
+          "❌ Make sure Geocoding API is enabled and billing is set up"
+        );
+      } else if (data.status === "OVER_QUERY_LIMIT") {
+        console.error("❌ Over query limit - check billing and quotas");
+      } else if (data.status === "ZERO_RESULTS") {
+        console.error("❌ No results found for these coordinates");
+      }
+
+      throw new Error(
+        `Geocoding API error: ${data.status}${
+          data.error_message ? ` - ${data.error_message}` : ""
+        }`
+      );
+    }
+
+    if (!data.results || data.results.length === 0) {
+      console.error("❌ No results found in geocoding response");
       throw new Error("No location data found");
     }
+
+    console.log("✅ Geocoding API call successful");
+    console.log("📊 Number of results:", data.results.length);
 
     const result = data.results[0];
     const addressComponents = result.address_components;
@@ -82,20 +132,39 @@ async function getPlaceDescription(lat: number, lng: number): Promise<string> {
     let streetNumber = "";
     let route = "";
     let postalCode = "";
+    let sublocality = "";
+    let neighborhood = "";
 
+    console.log("🔍 Processing address components...");
     for (const component of addressComponents) {
+      console.log(
+        `  📝 Component: ${component.long_name} (${component.types.join(", ")})`
+      );
+
       if (component.types.includes("locality")) {
         locality = component.long_name;
+        console.log(`    ✅ Found locality: ${locality}`);
       } else if (component.types.includes("administrative_area_level_1")) {
         administrativeArea = component.long_name;
+        console.log(`    ✅ Found administrative area: ${administrativeArea}`);
       } else if (component.types.includes("country")) {
         country = component.long_name;
+        console.log(`    ✅ Found country: ${country}`);
       } else if (component.types.includes("street_number")) {
         streetNumber = component.long_name;
+        console.log(`    ✅ Found street number: ${streetNumber}`);
       } else if (component.types.includes("route")) {
         route = component.long_name;
+        console.log(`    ✅ Found route: ${route}`);
       } else if (component.types.includes("postal_code")) {
         postalCode = component.long_name;
+        console.log(`    ✅ Found postal code: ${postalCode}`);
+      } else if (component.types.includes("sublocality")) {
+        sublocality = component.long_name;
+        console.log(`    ✅ Found sublocality: ${sublocality}`);
+      } else if (component.types.includes("neighborhood")) {
+        neighborhood = component.long_name;
+        console.log(`    ✅ Found neighborhood: ${neighborhood}`);
       }
     }
 
@@ -106,21 +175,57 @@ async function getPlaceDescription(lat: number, lng: number): Promise<string> {
       administrativeArea,
       country,
       postalCode,
+      sublocality,
+      neighborhood,
     });
 
     // Build a natural place description
+    console.log("🏗️ Building place description...");
     let placeDescription = "";
     if (locality && administrativeArea) {
       placeDescription = `${locality}, ${administrativeArea}`;
+      console.log(
+        `    ✅ Using locality + administrative area: ${placeDescription}`
+      );
     } else if (locality) {
       placeDescription = locality;
+      console.log(`    ✅ Using locality only: ${placeDescription}`);
+    } else if (sublocality && administrativeArea) {
+      placeDescription = `${sublocality}, ${administrativeArea}`;
+      console.log(
+        `    ✅ Using sublocality + administrative area: ${placeDescription}`
+      );
+    } else if (sublocality) {
+      placeDescription = sublocality;
+      console.log(`    ✅ Using sublocality only: ${placeDescription}`);
     } else if (administrativeArea) {
       placeDescription = administrativeArea;
+      console.log(`    ✅ Using administrative area only: ${placeDescription}`);
+    } else if (neighborhood) {
+      placeDescription = neighborhood;
+      console.log(`    ✅ Using neighborhood: ${placeDescription}`);
+    } else if (route) {
+      // Use street name if available
+      placeDescription = route;
+      if (streetNumber) {
+        placeDescription = `${streetNumber} ${route}`;
+      }
+      console.log(`    ✅ Using route: ${placeDescription}`);
+    } else if (country) {
+      placeDescription = country;
+      console.log(`    ✅ Using country: ${placeDescription}`);
     } else {
       placeDescription = "this location";
+      console.log(
+        `    ❌ No usable address components found, using fallback: ${placeDescription}`
+      );
     }
 
-    if (country && country !== administrativeArea) {
+    if (
+      country &&
+      country !== administrativeArea &&
+      !placeDescription.includes(country)
+    ) {
       placeDescription += `, ${country}`;
     }
 
@@ -346,11 +451,16 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Get place description from coordinates
     let placeDescription = "this location"; // Default fallback
+    console.log("🔄 About to call getPlaceDescription function...");
     try {
       placeDescription = await getPlaceDescription(body.lat, body.lng);
       console.log("✅ Place description retrieved:", placeDescription);
     } catch (error) {
       console.error("❌ Failed to get place description:", error);
+      console.error("❌ Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       console.error("❌ Using fallback place description");
     }
 
