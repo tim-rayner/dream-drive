@@ -163,6 +163,20 @@ export default function NavBar() {
                   }}
                 >
                   <MenuItem
+                    onClick={() => {
+                      router.push("/settings");
+                      handleClose();
+                    }}
+                    sx={{
+                      color: "white",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                    }}
+                  >
+                    Settings
+                  </MenuItem>
+                  <MenuItem
                     onClick={handleLogout}
                     sx={{
                       color: "white",
