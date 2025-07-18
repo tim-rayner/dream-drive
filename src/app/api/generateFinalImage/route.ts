@@ -268,30 +268,6 @@ async function callReplicate({
   throw new Error("Replicate generation timed out");
 }
 
-// Generate scene description using BLIP
-async function generateSceneDescription(
-  sceneImage: string,
-  placeDescription: string
-): Promise<string> {
-  const output = await callReplicate({
-    version:
-      "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
-    input: {
-      image: sceneImage, // base64 data URI
-      task: "image_captioning",
-      caption: `Describe this place in a natural, engaging way. Focus on the visual elements, atmosphere, and mood. Location: ${placeDescription}`,
-    },
-  });
-  if (typeof output === "string") return output;
-  if (
-    Array.isArray(output) &&
-    output.length > 0 &&
-    typeof output[0] === "string"
-  )
-    return output[0];
-  throw new Error("No output from BLIP");
-}
-
 // Analyze car image to get specific details
 async function analyzeCarImage(carImage: string): Promise<string> {
   try {
@@ -319,29 +295,18 @@ async function analyzeCarImage(carImage: string): Promise<string> {
   }
 }
 
-// Generate final image with car in scene
-async function generateFinalImage(
-  carImage: string,
+// Generate scene description using BLIP with focus on large structures
+async function generateSceneDescription(
   sceneImage: string,
-  sceneDescription: string,
-  timeOfDay: string,
-  placeDescription: string,
-  customInstructions?: string
+  placeDescription: string
 ): Promise<string> {
-  // Compose the improved prompt
-  const carDescription = await analyzeCarImage(carImage);
-  console.log("🚗 Car analysis result:", carDescription);
-  let finalPrompt = `Generate a single, photorealistic image of the car from the uploaded photo, placed in the provided location scene (${sceneDescription} ${timeOfDay} in ${placeDescription}). CRITICAL: Remove ALL text, overlays, watermarks, logos, copyright notices, or any Google-related elements (including "Google", "Google Maps", "© Google", or any similar text) from both the car image and the location image. The final image must contain NO watermarks, or overlays whatsoever. The final image must contain NO human beings in the car. IMPORTANT: if the car contains any liveries or custom paint work, this MUST be included in the final shot. IMPORTANT: The time of day must be ${timeOfDay} - if night is selected, the scene must be dark with night lighting, not bright daylight. Only use the car from the uploaded image—remove any overlays, watermarks, text, or unrelated elements from the car as well. Do not generate multiple angles, split views, or collages—output only one natural, realistic composition. Do not invent or add any other vehicles, objects, or features. The background should be the provided location image, and the car should be seamlessly integrated with natural lighting and shadows matching the ${timeOfDay} setting. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
-  if (customInstructions && customInstructions.trim().length > 0) {
-    finalPrompt += ` ${customInstructions.trim()}`;
-  }
-  console.log("🎨 Final image generation prompt:", finalPrompt);
   const output = await callReplicate({
-    version: "flux-kontext-apps/multi-image-kontext-pro",
+    version:
+      "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
     input: {
-      input_image_1: carImage,
-      input_image_2: sceneImage,
-      prompt: finalPrompt,
+      image: sceneImage, // base64 data URI
+      task: "image_captioning",
+      caption: `Describe this location focusing on large structures, prominent features, and dramatic elements. Emphasize mountains, buildings, bridges, monuments, or any significant architectural or natural features. Include the overall atmosphere and scale. Location: ${placeDescription}`,
     },
   });
   if (typeof output === "string") return output;
@@ -351,6 +316,101 @@ async function generateFinalImage(
     typeof output[0] === "string"
   )
     return output[0];
+  throw new Error("No output from BLIP");
+}
+
+// Helper function to build the final prompt
+function buildFinalPrompt({
+  carDescription,
+  sceneDescription,
+  timeOfDayText,
+  placeDescription,
+  customInstructions,
+}: {
+  carDescription: string;
+  sceneDescription: string;
+  timeOfDayText: string;
+  placeDescription: string;
+  customInstructions?: string;
+}): string {
+  let prompt = `Generate ONE single ultra-realistic 4K photograph.
+
+CRITICAL: Use ONLY the car from the first image. DO NOT use ANY other details from photo 1 - no background elements, no shadows, no reflections, no ground, no objects, no people, no text, no logos, no overlays. Extract ONLY the car itself and nothing else from the first image.
+
+CRITICAL: Remove the driver from the car. The car should appear empty with no human occupants.
+
+CRITICAL: Do not transfer any ground, shadows, or surface textures from the original car image. The car should be placed on the ground/surface of the second image with shadows and reflections that match the new environment.
+
+Use the second uploaded image EXACTLY as the complete and final background. DO NOT reconstruct or invent the location — it must be identical to the provided scene image. No AI-generated scenery. No hallucinated context.
+
+IMPORTANT: Emphasize and preserve all large structures and prominent features from the scene. If mountains, buildings, bridges, monuments, or dramatic architectural/natural features are present, ensure they remain prominent in the final composition. The scene description indicates: "${sceneDescription}"
+
+Merge the car seamlessly into the scene with accurate shadows, natural reflections, and lighting that match the scene and time of day (${timeOfDayText}) in ${placeDescription}. Ensure large structures maintain their visual impact and scale.
+
+Camera style: 50mm DSLR, f/2.8 aperture, eye-level framing, cinematic bokeh, natural depth of field, realistic lighting. Use one professional, single-angle photo — no collages, no split views.
+
+`;
+
+  if (customInstructions?.trim()) {
+    prompt += `Additional user instructions: ${customInstructions.trim()}\n`;
+  }
+
+  return prompt;
+}
+
+// Generate final image with car in scene
+async function generateFinalImage(
+  carImage: string,
+  sceneImage: string,
+  timeOfDay: string,
+  placeDescription: string,
+  customInstructions?: string
+): Promise<string> {
+  // Analyze car image to get specific details
+  const carDescription = await analyzeCarImage(carImage);
+  console.log("🚗 Car analysis result:", carDescription);
+
+  // Generate scene description focusing on large structures
+  const sceneDescription = await generateSceneDescription(
+    sceneImage,
+    placeDescription
+  );
+  console.log(
+    "🏔️ Scene description (focusing on large structures):",
+    sceneDescription
+  );
+
+  const finalPrompt = buildFinalPrompt({
+    carDescription,
+    sceneDescription,
+    timeOfDayText: timeOfDay,
+    placeDescription,
+    customInstructions,
+  });
+
+  console.log("🎨 Final image generation prompt:");
+  console.log("=".repeat(80));
+  console.log(finalPrompt);
+  console.log("=".repeat(80));
+
+  const output = await callReplicate({
+    version: "flux-kontext-apps/multi-image-kontext-pro",
+    input: {
+      input_image_1: carImage,
+      input_image_2: sceneImage,
+      prompt: finalPrompt,
+    },
+  });
+
+  // Ensure only one final image is returned
+  if (typeof output === "string") return output;
+  if (
+    Array.isArray(output) &&
+    output.length > 0 &&
+    typeof output[0] === "string"
+  ) {
+    return output[0];
+  }
   throw new Error("No output from image generation");
 }
 
@@ -422,14 +482,7 @@ export async function POST(request: NextRequest) {
     // Log the final place description that will be used
     console.log("🎯 Final place description for prompt:", placeDescription);
 
-    // Step 2: Generate scene description using BLIP
-    const sceneDescription = await generateSceneDescription(
-      body.sceneImage,
-      placeDescription
-    );
-    console.log("Scene description:", sceneDescription);
-
-    // Step 3: Generate final image
+    // Step 2: Generate final image
     const timeOfDayText =
       body.timeOfDay === "sunrise"
         ? "at sunrise"
@@ -439,10 +492,19 @@ export async function POST(request: NextRequest) {
         ? "at dusk"
         : "at night";
 
+    // Generate scene description focusing on large structures
+    const sceneDescription = await generateSceneDescription(
+      body.sceneImage,
+      placeDescription
+    );
+    console.log(
+      "🏔️ Scene description (focusing on large structures):",
+      sceneDescription
+    );
+
     const finalImageUrl = await generateFinalImage(
       body.carImage,
       body.sceneImage,
-      sceneDescription,
       timeOfDayText,
       placeDescription,
       body.customInstructions
