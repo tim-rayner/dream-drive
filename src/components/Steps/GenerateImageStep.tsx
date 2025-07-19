@@ -24,6 +24,7 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useCredits } from "../../context/CreditsContext";
+import { refundCredit } from "../../lib/actions/refundCredit";
 import { spendCredit } from "../../lib/creditsService";
 
 interface GenerateImageStepProps {
@@ -215,6 +216,29 @@ export default function GenerateImageStep({
     } catch (error) {
       console.error("Error generating image:", error);
       setCurrentStep("idle");
+
+      // If the API call failed, we need to refund the credit
+      console.log(
+        "🔄 Attempting to refund credit due to generation failure..."
+      );
+      try {
+        if (user?.id) {
+          const refundResult = await refundCredit(user.id);
+          if (refundResult.success) {
+            console.log(
+              "✅ Credit refunded successfully due to generation failure"
+            );
+            // Refresh credits in the context to update the navbar
+            await refreshCredits();
+          } else {
+            console.error("❌ Failed to refund credit:", refundResult.error);
+          }
+        } else {
+          console.error("❌ Cannot refund credit: no user ID available");
+        }
+      } catch (refundError) {
+        console.error("❌ Exception during credit refund:", refundError);
+      }
 
       if (error instanceof Error) {
         setError(error.message);

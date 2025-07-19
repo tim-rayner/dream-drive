@@ -1,5 +1,8 @@
-import { refundCredit } from "@/lib/actions/refundCredit";
-import { supabaseAdmin, type CreateGenerationData } from "@/lib/supabase";
+import {
+  supabase,
+  supabaseAdmin,
+  type CreateGenerationData,
+} from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 
 interface GenerateFinalImageRequest {
@@ -9,9 +12,9 @@ interface GenerateFinalImageRequest {
   lng: number;
   timeOfDay: "sunrise" | "afternoon" | "dusk" | "night";
   customInstructions?: string; // Add optional customInstructions
-  userId?: string; // Add user ID for saving generation
-  isRevision?: boolean; // Flag to indicate if this is a revision
-  originalGenerationId?: string; // ID of original generation for revisions
+  userId?: string; // New: for saving generation
+  isRevision?: boolean; // New: revision flag
+  originalGenerationId?: string; // New: links to original
 }
 
 // Reverse geocoding to get place names
@@ -243,7 +246,11 @@ async function callReplicate({
   });
   if (!response.ok) {
     const errorData = await response.text();
-    throw new Error(`Replicate API error: ${response.status} - ${errorData}`);
+
+    // Show user-friendly message for any Replicate API error
+    throw new Error(
+      "Our servers are currently experiencing high load, please check back later"
+    );
   }
   const prediction = await response.json();
   // Poll for completion
@@ -261,16 +268,48 @@ async function callReplicate({
       }
     );
     if (!statusResponse.ok)
-      throw new Error(`Status check failed: ${statusResponse.status}`);
+      throw new Error(
+        "Our servers are currently experiencing high load, please check back later"
+      );
     const statusData = await statusResponse.json();
     if (statusData.status === "succeeded") {
       return statusData.output;
     } else if (statusData.status === "failed") {
-      throw new Error("Replicate generation failed");
+      throw new Error(
+        "Our servers are currently experiencing high load, please check back later"
+      );
     }
     attempts++;
   }
-  throw new Error("Replicate generation timed out");
+  throw new Error(
+    "Our servers are currently experiencing high load, please check back later"
+  );
+}
+
+// Generate scene description using BLIP
+async function generateSceneDescription(
+  sceneImage: string,
+  placeDescription: string
+): Promise<string> {
+  const output = await callReplicate({
+    version:
+      "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
+    input: {
+      image: sceneImage, // base64 data URI
+      task: "image_captioning",
+      caption: `Describe this place in a natural, engaging way. Focus on the visual elements, atmosphere, and mood. Location: ${placeDescription}`,
+    },
+  });
+  if (typeof output === "string") return output;
+  if (
+    Array.isArray(output) &&
+    output.length > 0 &&
+    typeof output[0] === "string"
+  )
+    return output[0];
+  throw new Error(
+    "Our servers are currently experiencing high load, please check back later"
+  );
 }
 
 // Analyze car image to get specific details
@@ -293,25 +332,38 @@ async function analyzeCarImage(carImage: string): Promise<string> {
       typeof output[0] === "string"
     )
       return output[0];
-    throw new Error("No output from car analysis");
+    throw new Error(
+      "Our servers are currently experiencing high load, please check back later"
+    );
   } catch (error) {
     console.error("Error analyzing car image:", error);
     return "a car"; // Fallback
   }
 }
 
-// Generate scene description using BLIP with focus on large structures
-async function generateSceneDescription(
+// Generate final image with car in scene
+async function generateFinalImage(
+  carImage: string,
   sceneImage: string,
-  placeDescription: string
+  sceneDescription: string,
+  timeOfDay: string,
+  placeDescription: string,
+  customInstructions?: string
 ): Promise<string> {
+  // Compose the improved prompt
+  const carDescription = await analyzeCarImage(carImage);
+  console.log("🚗 Car analysis result:", carDescription);
+  let finalPrompt = `Generate a single, photorealistic image of the car from the uploaded photo, placed in the provided location scene (${sceneDescription} ${timeOfDay} in ${placeDescription}). CRITICAL: Remove ALL text, overlays, watermarks, logos, copyright notices, or any Google-related elements (including "Google", "Google Maps", "© Google", or any similar text) from both the car image and the location image. The final image must contain NO text, watermarks, or overlays whatsoever. IMPORTANT: The time of day must be ${timeOfDay} - if night is selected, the scene must be dark with night lighting, not bright daylight. Only use the car from the uploaded image—remove any overlays, watermarks, text, or unrelated elements from the car as well. Do not generate multiple angles, split views, or collages—output only one natural, realistic composition. Do not invent or add any other vehicles, objects, or features. The background should be the provided location image, and the car should be seamlessly integrated with natural lighting and shadows matching the ${timeOfDay} setting. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
+  if (customInstructions && customInstructions.trim().length > 0) {
+    finalPrompt += ` ${customInstructions.trim()}`;
+  }
+  console.log("🎨 Final image generation prompt:", finalPrompt);
   const output = await callReplicate({
-    version:
-      "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
+    version: "flux-kontext-apps/multi-image-kontext-pro",
     input: {
-      image: sceneImage, // base64 data URI
-      task: "image_captioning",
-      caption: `Describe this location focusing on large structures, prominent features, and dramatic elements. Emphasize mountains, buildings, bridges, monuments, or any significant architectural or natural features. Include the overall atmosphere and scale. Location: ${placeDescription}`,
+      input_image_1: carImage,
+      input_image_2: sceneImage,
+      prompt: finalPrompt,
     },
   });
   if (typeof output === "string") return output;
@@ -321,167 +373,12 @@ async function generateSceneDescription(
     typeof output[0] === "string"
   )
     return output[0];
-  throw new Error("No output from BLIP");
-}
-
-// Helper function to build the final prompt
-function buildFinalPrompt({
-  carDescription,
-  sceneDescription,
-  timeOfDayText,
-  placeDescription,
-  customInstructions,
-}: {
-  carDescription: string;
-  sceneDescription: string;
-  timeOfDayText: string;
-  placeDescription: string;
-  customInstructions?: string;
-}): string {
-  let prompt = `Generate EXACTLY ONE single ultra-realistic 4K photograph. NO COLLAGES. NO MULTIPLE IMAGES. NO SPLIT VIEWS. NO BEFORE/AFTER. NO COMPARISON SHOTS. ONLY ONE FINAL IMAGE.
-
-CRITICAL ANTI-COLLAGE INSTRUCTIONS:
-- Output EXACTLY ONE single photograph
-- NO multiple images side by side
-- NO before/after comparisons  
-- NO split-screen layouts
-- NO image grids or mosaics
-- NO multiple angles or views
-- NO separate car and scene images
-- ONLY ONE unified final image
-
-CRITICAL IMAGE USAGE INSTRUCTIONS:
-- Image 1 (car image): Extract ONLY the car object itself. IGNORE ALL background elements, surfaces, shadows, reflections, or environmental details from the car image.
-- Image 2 (scene image): Use this as the COMPLETE background environment. The car from image 1 should be placed into this environment.
-- Final result: ONLY the car from image 1 placed into the environment from image 2. NO elements from the car's original background should appear.
-
-CRITICAL: Use ONLY the car from the first image. DO NOT use ANY other details from photo 1 - no background elements, no shadows, no reflections, no ground, no objects, no people, no text, no logos, no overlays. Extract ONLY the car itself and nothing else from the first image.
-
-CRITICAL: Remove the driver from the car. The car should appear empty with no human occupants.
-
-CRITICAL: Do not transfer any ground, shadows, or surface textures from the original car image. The car should be placed on the ground/surface of the second image with shadows and reflections that match the new environment.
-
-CRITICAL BACKGROUND ISOLATION: The car image (image 1) contains ONLY the car object itself. DO NOT use ANY background elements, surfaces, shadows, reflections, or environmental details from the car image. The car should be completely isolated and placed ONLY into the environment shown in image 2. If the car image shows a driveway, parking lot, garage, or any other background, IGNORE IT COMPLETELY and use ONLY the car object itself.
-
-CRITICAL: The final image must show ONLY the car from image 1 placed into the environment from image 2. NO elements from the car's original background should appear in the final image.
-
-CRITICAL: Remove ALL Google Maps overlays, watermarks, text, logos, and UI elements from the scene image. The final image must be completely clean with NO:
-- Google Maps watermarks
-- "Google" text or logos
-- "CAM" indicators
-- Street view overlays
-- Navigation elements
-- UI buttons or controls
-- Text overlays of any kind
-- Map interface elements
-- Street view interface elements
-- Any digital overlays or watermarks
-
-Use the second uploaded image EXACTLY as the complete and final background, but REMOVE ALL digital overlays and watermarks. DO NOT reconstruct or invent the location — it must be identical to the provided scene image but completely clean. No AI-generated scenery. No hallucinated context.
-
-IMPORTANT: Emphasize and preserve all large structures and prominent features from the scene. If mountains, buildings, bridges, monuments, or dramatic architectural/natural features are present, ensure they remain prominent in the final composition. The scene description indicates: "${sceneDescription}"
-
-CRITICAL LIGHTING REQUIREMENT: The final image MUST be rendered with ${timeOfDayText} lighting. This is the most important aspect of the image. The entire scene, including the car, shadows, reflections, and background, must be illuminated as if it is ${timeOfDayText}. If the original scene image shows different lighting, you MUST override it to match ${timeOfDayText} lighting conditions.
-
-LIGHTING SPECIFICATIONS:
-- If sunrise: Warm golden-orange light, soft shadows, pink/orange sky tones
-- If afternoon: Bright daylight, strong shadows, clear blue sky
-- If dusk: Warm golden light, long shadows, orange/purple sky tones  
-- If night: Dark sky, artificial lights, moonlit shadows, dark environment
-
-Merge the car seamlessly into the scene with accurate shadows, natural reflections, and lighting that match ${timeOfDayText} in ${placeDescription}. Ensure large structures maintain their visual impact and scale.
-
-Camera style: 50mm DSLR, f/2.8 aperture, eye-level framing, cinematic bokeh, natural depth of field, realistic lighting. 
-
-FINAL REQUIREMENT: Output EXACTLY ONE single photograph showing the car integrated into the scene. NO EXCEPTIONS.
-
-`;
-
-  if (customInstructions?.trim()) {
-    prompt += `Additional user instructions: ${customInstructions.trim()}\n`;
-  }
-
-  return prompt;
-}
-
-// Generate final image with car in scene
-async function generateFinalImage(
-  carImage: string,
-  sceneImage: string,
-  timeOfDay: string,
-  placeDescription: string,
-  customInstructions?: string
-): Promise<string> {
-  // Analyze car image to get specific details
-  const carDescription = await analyzeCarImage(carImage);
-  console.log("🚗 Car analysis result:", carDescription);
-
-  // Generate scene description focusing on large structures
-  const sceneDescription = await generateSceneDescription(
-    sceneImage,
-    placeDescription
-  );
-  console.log(
-    "🏔️ Scene description (focusing on large structures):",
-    sceneDescription
-  );
-
-  const finalPrompt = buildFinalPrompt({
-    carDescription,
-    sceneDescription,
-    timeOfDayText: timeOfDay,
-    placeDescription,
-    customInstructions,
-  });
-
-  console.log("🎨 Final image generation prompt:");
-  console.log("=".repeat(80));
-  console.log(finalPrompt);
-  console.log("=".repeat(80));
-
-  const output = await callReplicate({
-    version: "flux-kontext-apps/multi-image-kontext-pro",
-    input: {
-      input_image_1: carImage,
-      input_image_2: sceneImage,
-      prompt: finalPrompt,
-      negative_prompt:
-        "collage, multiple images, split view, before after, comparison, grid, mosaic, side by side, multiple angles, separate images, image grid, photo grid, multiple photos, dual image, split screen, before/after, comparison shot, multiple views, separate car and scene, image montage, photo montage, multiple scenes, dual scene, split image, divided image, image division, photo division, multiple frames, image frames, photo frames, multiple panels, image panels, photo panels, triptych, diptych, polyptych, image series, photo series, multiple shots, multiple photographs, image array, photo array, multiple pictures, image collection, photo collection, multiple views, multiple perspectives, image comparison, photo comparison, side-by-side comparison, split comparison, dual comparison, multiple comparison, image split, photo split, image division, photo division, image separation, photo separation, multiple images in one, multiple photos in one, image collage, photo collage, image montage, photo montage, image grid, photo grid, image array, photo array, multiple images side by side, multiple photos side by side, image grid layout, photo grid layout, image array layout, photo array layout, multiple image layout, multiple photo layout, image grid format, photo grid format, image array format, photo array format, multiple image format, multiple photo format, image grid style, photo grid style, image array style, photo array style, multiple image style, multiple photo style, image grid composition, photo grid composition, image array composition, photo array composition, multiple image composition, multiple photo composition, image grid arrangement, photo grid arrangement, image array arrangement, photo array arrangement, multiple image arrangement, multiple photo arrangement, image grid pattern, photo grid pattern, image array pattern, photo array pattern, multiple image pattern, multiple photo pattern, image grid structure, photo grid structure, image array structure, photo array structure, multiple image structure, multiple photo structure, image grid design, photo grid design, image array design, photo array design, multiple image design, multiple photo design, image grid layout, photo grid layout, image array layout, photo array layout, multiple image layout, multiple photo layout, image grid format, photo grid format, image array format, photo array format, multiple image format, multiple photo format, image grid style, photo grid style, image array style, photo array style, multiple image style, multiple photo style, image grid composition, photo grid composition, image array composition, photo array composition, multiple image composition, multiple photo composition, image grid arrangement, photo grid arrangement, image array arrangement, photo array arrangement, multiple image arrangement, multiple photo arrangement, image grid pattern, photo grid pattern, image array pattern, photo array pattern, multiple image pattern, multiple photo pattern, image grid structure, photo grid structure, image array structure, photo array structure, multiple image structure, multiple photo structure, image grid design, photo grid design, image array design, photo array design, multiple image design, multiple photo design, watermark, watermarks, google maps, google maps overlay, google maps watermark, google watermark, maps overlay, maps watermark, street view overlay, street view watermark, navigation overlay, navigation watermark, UI overlay, UI watermark, interface overlay, interface watermark, text overlay, text watermark, logo overlay, logo watermark, digital overlay, digital watermark, map interface, street view interface, navigation interface, UI elements, interface elements, control elements, button overlay, button watermark, CAM indicator, CAM text, google text, google logo, maps text, maps logo, street view text, street view logo, navigation text, navigation logo, overlay text, overlay logo, watermark text, watermark logo, digital text, digital logo, interface text, interface logo, UI text, UI logo, control text, control logo, button text, button logo, element text, element logo, google maps text, google maps logo, street view text, street view logo, navigation text, navigation logo, overlay elements, watermark elements, digital elements, interface elements, UI elements, control elements, button elements, text elements, logo elements, car background, car driveway, car parking lot, car garage, car surface, car ground, car shadow, car reflection, car environment, car background elements, car surface texture, car ground texture, car driveway texture, car parking texture, car garage texture, car background details, car environmental details, car surface details, car ground details, car driveway details, car parking details, car garage details, car background features, car surface features, car ground features, car driveway features, car parking features, car garage features, car background objects, car surface objects, car ground objects, car driveway objects, car parking objects, car garage objects, car background scene, car surface scene, car ground scene, car driveway scene, car parking scene, car garage scene, car background setting, car surface setting, car ground setting, car driveway setting, car parking setting, car garage setting, car background location, car surface location, car ground location, car driveway location, car parking location, car garage location, car background area, car surface area, car ground area, car driveway area, car parking area, car garage area, car background space, car surface space, car ground space, car driveway space, car parking space, car garage space, car background context, car surface context, car ground context, car driveway context, car parking context, car garage context, car background environment, car surface environment, car ground environment, car driveway environment, car parking environment, car garage environment, car background surroundings, car surface surroundings, car ground surroundings, car driveway surroundings, car parking surroundings, car garage surroundings, car background landscape, car surface landscape, car ground landscape, car driveway landscape, car parking landscape, car garage landscape, car background terrain, car surface terrain, car ground terrain, car driveway terrain, car parking terrain, car garage terrain, car background pavement, car surface pavement, car ground pavement, car driveway pavement, car parking pavement, car garage pavement, car background concrete, car surface concrete, car ground concrete, car driveway concrete, car parking concrete, car garage concrete, car background asphalt, car surface asphalt, car ground asphalt, car driveway asphalt, car parking asphalt, car garage asphalt, car background road, car surface road, car ground road, car driveway road, car parking road, car garage road, car background street, car surface street, car ground street, car driveway street, car parking street, car garage street, car background lane, car surface lane, car ground lane, car driveway lane, car parking lane, car garage lane, car background path, car surface path, car ground path, car driveway path, car parking path, car garage path, car background walkway, car surface walkway, car ground walkway, car driveway walkway, car parking walkway, car garage walkway, car background entrance, car surface entrance, car ground entrance, car driveway entrance, car parking entrance, car garage entrance, car background exit, car surface exit, car ground exit, car driveway exit, car parking exit, car garage exit, car background access, car surface access, car ground access, car driveway access, car parking access, car garage access, car background approach, car surface approach, car ground approach, car driveway approach, car parking approach, car garage approach, car background entry, car surface entry, car ground entry, car driveway entry, car parking entry, car garage entry, car background departure, car surface departure, car ground departure, car driveway departure, car parking departure, car garage departure, car background arrival, car surface arrival, car ground arrival, car driveway arrival, car parking arrival, car garage arrival, car background parking, car surface parking, car ground parking, car driveway parking, car parking parking, car garage parking, car background stopping, car surface stopping, car ground stopping, car driveway stopping, car parking stopping, car garage stopping, car background waiting, car surface waiting, car ground waiting, car driveway waiting, car parking waiting, car garage waiting, car background standing, car surface standing, car ground standing, car driveway standing, car parking standing, car garage standing, car background resting, car surface resting, car ground resting, car driveway resting, car parking resting, car garage resting, car background idling, car surface idling, car ground idling, car driveway idling, car parking idling, car garage idling, car background stationary, car surface stationary, car ground stationary, car driveway stationary, car parking stationary, car garage stationary, car background parked, car surface parked, car ground parked, car driveway parked, car parking parked, car garage parked, car background stopped, car surface stopped, car ground stopped, car driveway stopped, car parking stopped, car garage stopped, car background waiting, car surface waiting, car ground waiting, car driveway waiting, car parking waiting, car garage waiting, car background standing, car surface standing, car ground standing, car driveway standing, car parking standing, car garage standing, car background resting, car surface resting, car ground resting, car driveway resting, car parking resting, car garage resting, car background idling, car surface idling, car ground idling, car driveway idling, car parking idling, car garage idling, car background stationary, car surface stationary, car ground stationary, car driveway stationary, car parking stationary, car garage stationary, car background parked, car surface parked, car ground parked, car driveway parked, car parking parked, car garage parked, car background stopped, car surface stopped, car ground stopped, car driveway stopped, car parking stopped, car garage stopped",
-    },
-  });
-
-  // Ensure only one final image is returned
-  console.log("🔍 Raw output from Replicate:", output);
-
-  if (typeof output === "string") {
-    console.log("✅ Single string output received");
-    return output;
-  }
-
-  if (Array.isArray(output)) {
-    console.log(`📊 Array output received with ${output.length} items`);
-
-    // Filter out any non-string items
-    const stringOutputs = output.filter((item) => typeof item === "string");
-    console.log(`📋 Found ${stringOutputs.length} string items`);
-
-    if (stringOutputs.length > 0) {
-      // Return only the first image to prevent collages
-      console.log("✅ Returning first image from array");
-      return stringOutputs[0];
-    }
-  }
-
-  console.error("❌ Invalid output format from image generation");
   throw new Error(
-    "Invalid output format from image generation - expected single image"
+    "Our servers are currently experiencing high load, please check back later"
   );
 }
 
 export async function POST(request: NextRequest) {
-  let creditSpent = false;
-  let userId: string | undefined;
-
   try {
     const body: GenerateFinalImageRequest = await request.json();
 
@@ -516,6 +413,7 @@ export async function POST(request: NextRequest) {
 
     // Validate time of day
     const validTimeOfDay = ["sunrise", "afternoon", "dusk", "night"];
+
     if (!validTimeOfDay.includes(body.timeOfDay)) {
       return NextResponse.json(
         {
@@ -525,9 +423,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Store userId for potential refund
-    userId = body.userId;
 
     console.log("🌍 Starting reverse geocoding for coordinates:", {
       lat: body.lat,
@@ -552,116 +447,93 @@ export async function POST(request: NextRequest) {
     // Log the final place description that will be used
     console.log("🎯 Final place description for prompt:", placeDescription);
 
-    // Step 2: Generate final image
-    const timeOfDayText =
-      body.timeOfDay === "sunrise"
-        ? "golden hour sunrise lighting with warm orange and pink hues, early morning shadows"
-        : body.timeOfDay === "afternoon"
-        ? "bright daylight with strong shadows, clear blue sky, midday lighting"
-        : body.timeOfDay === "dusk"
-        ? "golden hour sunset lighting with warm orange and purple hues, long shadows"
-        : "nighttime lighting with dark sky, artificial lights, moonlit shadows";
-
-    console.log("⏰ Time of day processing:");
-    console.log("  - Original selection:", body.timeOfDay);
-    console.log("  - Processed text:", timeOfDayText);
-
-    // Generate scene description focusing on large structures
+    // Step 2: Generate scene description using BLIP
     const sceneDescription = await generateSceneDescription(
       body.sceneImage,
       placeDescription
     );
-    console.log(
-      "🏔️ Scene description (focusing on large structures):",
-      sceneDescription
-    );
+    console.log("Scene description:", sceneDescription);
+
+    // Step 3: Generate final image
+    const timeOfDayText =
+      body.timeOfDay === "sunrise"
+        ? "at sunrise"
+        : body.timeOfDay === "afternoon"
+        ? "in the afternoon"
+        : body.timeOfDay === "dusk"
+        ? "at dusk"
+        : "at night";
 
     const finalImageUrl = await generateFinalImage(
       body.carImage,
       body.sceneImage,
+      sceneDescription,
       timeOfDayText,
       placeDescription,
       body.customInstructions
     );
     console.log("Final image generated:", finalImageUrl);
 
-    // Mark that credit was successfully spent
-    creditSpent = true;
-
-    // Save generation to database if user ID is provided
-    let generationId: string | undefined;
+    // Save generation to database if userId is provided
+    let savedGenerationId: string | null = null;
     if (body.userId) {
-      console.log("🔍 Attempting to save generation for user:", body.userId);
-      console.log("🔍 Supabase admin client available:", !!supabaseAdmin);
-
       try {
-        if (!supabaseAdmin) {
-          console.warn(
-            "⚠️ Supabase admin client not available - skipping generation save"
-          );
-          console.warn(
-            "⚠️ Please add SUPABASE_SERVICE_ROLE_KEY to your .env.local file"
-          );
-        } else {
-          console.log(
-            "✅ Supabase admin client available, saving generation..."
-          );
+        console.log("💾 Saving generation to database for user:", body.userId);
 
-          const generationData: CreateGenerationData = {
-            car_image_url: body.carImage,
-            scene_image_url: body.sceneImage,
-            lat: body.lat,
-            lng: body.lng,
-            time_of_day: body.timeOfDay,
-            custom_instructions: body.customInstructions,
-            final_image_url: finalImageUrl,
-            place_description: placeDescription,
-            scene_description: sceneDescription,
-          };
+        const generationData: CreateGenerationData = {
+          car_image_url: body.carImage,
+          scene_image_url: body.sceneImage,
+          lat: body.lat,
+          lng: body.lng,
+          time_of_day: body.timeOfDay,
+          custom_instructions: body.customInstructions,
+          final_image_url: finalImageUrl,
+          place_description: placeDescription,
+          scene_description: sceneDescription,
+        };
 
-          console.log("📝 Generation data prepared:", {
+        // Use admin client if available, otherwise use regular client
+        const client = supabaseAdmin || supabase;
+        console.log(
+          "📡 Using database client:",
+          supabaseAdmin ? "admin" : "regular"
+        );
+
+        const { data: savedGeneration, error: saveError } = await client
+          .from("generations")
+          .insert({
+            ...generationData,
             user_id: body.userId,
             is_revision: body.isRevision || false,
             original_generation_id: body.originalGenerationId || null,
-            place_description: placeDescription,
-            time_of_day: body.timeOfDay,
+            revision_used: false,
+          })
+          .select("id")
+          .single();
+
+        if (saveError) {
+          console.error("❌ Error saving generation to database:", saveError);
+          console.error("❌ Error details:", {
+            code: saveError.code,
+            message: saveError.message,
+            details: saveError.details,
+            hint: saveError.hint,
           });
-
-          const { data: generation, error } = await supabaseAdmin
-            .from("generations")
-            .insert({
-              ...generationData,
-              user_id: body.userId,
-              is_revision: body.isRevision || false,
-              original_generation_id: body.originalGenerationId || null,
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.error("❌ Error saving generation:", error);
-            console.error("❌ Error details:", {
-              code: error.code,
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-            });
-          } else {
-            generationId = generation.id;
-            console.log(
-              "✅ Generation saved successfully with ID:",
-              generationId
-            );
-          }
+          // Don't fail the request if database save fails
+        } else {
+          savedGenerationId = savedGeneration?.id || null;
+          console.log("✅ Generation saved with ID:", savedGenerationId);
         }
       } catch (error) {
-        console.error(
-          "❌ Exception while saving generation to database:",
-          error
-        );
+        console.error("❌ Exception saving generation:", error);
+        console.error("❌ Error details:", {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        // Don't fail the request if database save fails
       }
     } else {
-      console.log("⚠️ No userId provided, skipping generation save");
+      console.log("ℹ️ No userId provided, skipping database save");
     }
 
     return NextResponse.json({
@@ -670,27 +542,10 @@ export async function POST(request: NextRequest) {
       placeDescription,
       sceneDescription,
       timeOfDay: body.timeOfDay,
-      generationId,
+      generationId: savedGenerationId,
     });
   } catch (error) {
-    console.error("❌ Error in generateFinalImage:", error);
-
-    // If we have a userId and credit was spent, attempt to refund
-    if (userId && creditSpent) {
-      console.log("🔄 Attempting to refund credit due to generation failure");
-      try {
-        const refundResult = await refundCredit(userId);
-        if (refundResult.success) {
-          console.log(
-            "✅ Credit refunded successfully due to generation failure"
-          );
-        } else {
-          console.error("❌ Failed to refund credit:", refundResult.error);
-        }
-      } catch (refundError) {
-        console.error("❌ Exception during credit refund:", refundError);
-      }
-    }
+    console.error("Error in generateFinalImage:", error);
 
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
