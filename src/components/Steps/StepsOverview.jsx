@@ -37,6 +37,8 @@ const StepsOverview = () => {
 
   // Save file to localStorage when it changes
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (uploadedFile) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -56,6 +58,8 @@ const StepsOverview = () => {
 
   // Save scene image to localStorage when it changes
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (sceneImage) {
       localStorage.setItem("sceneImage", sceneImage);
     } else {
@@ -65,6 +69,8 @@ const StepsOverview = () => {
 
   // Save map data to localStorage when it changes
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (mapData.position) {
       // Only save the position data, not the marker object (which has circular references)
       const mapDataToSave = {
@@ -80,6 +86,8 @@ const StepsOverview = () => {
 
   // Save generated image URL to localStorage when it changes
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (generatedImageUrl) {
       localStorage.setItem("generatedImageUrl", generatedImageUrl);
     } else {
@@ -89,6 +97,9 @@ const StepsOverview = () => {
 
   // Restore file from localStorage on component mount
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === "undefined") return;
+
     const savedFileData = localStorage.getItem("uploadedFile");
     if (savedFileData) {
       try {
@@ -178,11 +189,37 @@ const StepsOverview = () => {
     setGeneratedImageUrl(null);
     setMapData({ position: null, marker: null });
     // Clear localStorage
-    localStorage.removeItem("uploadedFile");
-    localStorage.removeItem("sceneImage");
-    localStorage.removeItem("mapData");
-    localStorage.removeItem("generatedImageUrl");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("uploadedFile");
+      localStorage.removeItem("sceneImage");
+      localStorage.removeItem("mapData");
+      localStorage.removeItem("generatedImageUrl");
+    }
   }, []);
+
+  // Function to trigger file picker from stepper
+  const triggerFilePicker = useCallback(() => {
+    if (!uploadedFile) {
+      // Create a temporary file input and trigger it
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "image/jpeg,image/jpg,image/png,image/webp";
+      fileInput.style.display = "none";
+
+      fileInput.onchange = (e) => {
+        const target = e.target;
+        if (target.files && target.files.length > 0) {
+          const file = target.files[0];
+          handleFileUpload(file);
+        }
+        // Clean up
+        document.body.removeChild(fileInput);
+      };
+
+      document.body.appendChild(fileInput);
+      fileInput.click();
+    }
+  }, [uploadedFile, handleFileUpload]);
 
   const renderActiveStep = () => {
     switch (activeStep) {
@@ -454,10 +491,14 @@ const StepsOverview = () => {
               border:
                 activeStep === 0
                   ? "2px solid #8B5CF6"
+                  : uploadedFile
+                  ? "2px solid #10B981"
                   : "2px solid transparent",
               "&:hover": {
-                boxShadow: "0 8px 30px rgba(139, 92, 246, 0.1)",
-                borderColor: "#8B5CF6",
+                boxShadow: uploadedFile
+                  ? "0 8px 30px rgba(16, 185, 129, 0.1)"
+                  : "0 8px 30px rgba(139, 92, 246, 0.1)",
+                borderColor: uploadedFile ? "#10B981" : "#8B5CF6",
               },
             }}
           >
@@ -468,15 +509,52 @@ const StepsOverview = () => {
                     width: 80,
                     height: 80,
                     borderRadius: "50%",
-                    background:
-                      "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                    background: uploadedFile
+                      ? "linear-gradient(135deg, #10B981 0%, #34D399 100%)"
+                      : "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     mb: 2,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
-                  <PhotoCameraIcon sx={{ fontSize: 40, color: "white" }} />
+                  {uploadedFile ? (
+                    <>
+                      <img
+                        src={URL.createObjectURL(uploadedFile)}
+                        alt="Car preview"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: "50%",
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: -5,
+                          right: -5,
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          background: "#10B981",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "2px solid white",
+                        }}
+                      >
+                        <CheckCircleIcon
+                          sx={{ fontSize: 16, color: "white" }}
+                        />
+                      </Box>
+                    </>
+                  ) : (
+                    <PhotoCameraIcon sx={{ fontSize: 40, color: "white" }} />
+                  )}
                 </Box>
                 <Typography variant="h5" fontWeight={600}>
                   Upload Car Photo
@@ -487,8 +565,9 @@ const StepsOverview = () => {
                   align="center"
                   sx={{ flex: 1 }}
                 >
-                  Upload a high-quality photo of your car to get started with
-                  the AI transformation process
+                  {uploadedFile
+                    ? "Photo uploaded successfully! You can now proceed to choose a location."
+                    : "Upload a high-quality photo of your car to get started with the AI transformation process"}
                 </Typography>
                 <Button
                   variant="contained"
@@ -496,8 +575,13 @@ const StepsOverview = () => {
                   fullWidth
                   size="large"
                   sx={{ mt: "auto" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerFilePicker();
+                  }}
+                  disabled={!!uploadedFile}
                 >
-                  Choose Photo
+                  {uploadedFile ? "Photo Uploaded ✓" : "Choose Photo"}
                 </Button>
               </Stack>
             </CardContent>
@@ -528,13 +612,21 @@ const StepsOverview = () => {
               border:
                 activeStep === 1
                   ? "2px solid #8B5CF6"
+                  : sceneImage
+                  ? "2px solid #10B981"
                   : "2px solid transparent",
               opacity: isStepEnabled(1) ? 1 : 0.5,
               "&:hover": {
                 boxShadow: isStepEnabled(1)
-                  ? "0 8px 30px rgba(139, 92, 246, 0.1)"
+                  ? sceneImage
+                    ? "0 8px 30px rgba(16, 185, 129, 0.1)"
+                    : "0 8px 30px rgba(139, 92, 246, 0.1)"
                   : "none",
-                borderColor: isStepEnabled(1) ? "#8B5CF6" : "transparent",
+                borderColor: isStepEnabled(1)
+                  ? sceneImage
+                    ? "#10B981"
+                    : "#8B5CF6"
+                  : "transparent",
               },
             }}
           >
@@ -545,15 +637,52 @@ const StepsOverview = () => {
                     width: 80,
                     height: 80,
                     borderRadius: "50%",
-                    background:
-                      "linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)",
+                    background: sceneImage
+                      ? "linear-gradient(135deg, #10B981 0%, #34D399 100%)"
+                      : "linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     mb: 2,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
-                  <MapIcon sx={{ fontSize: 40, color: "white" }} />
+                  {sceneImage ? (
+                    <>
+                      <img
+                        src={sceneImage}
+                        alt="Scene preview"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: "50%",
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: -5,
+                          right: -5,
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          background: "#10B981",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "2px solid white",
+                        }}
+                      >
+                        <CheckCircleIcon
+                          sx={{ fontSize: 16, color: "white" }}
+                        />
+                      </Box>
+                    </>
+                  ) : (
+                    <MapIcon sx={{ fontSize: 40, color: "white" }} />
+                  )}
                 </Box>
                 <Typography variant="h5" fontWeight={600}>
                   Choose Location
@@ -564,18 +693,19 @@ const StepsOverview = () => {
                   align="center"
                   sx={{ flex: 1 }}
                 >
-                  Select any location from Google Street View to place your car
-                  in a new environment
+                  {sceneImage
+                    ? "Scene selected successfully! You can now proceed to generate your AI image."
+                    : "Select any location from Google Street View to place your car in a new environment"}
                 </Typography>
                 <Button
                   variant="contained"
-                  startIcon={<MapIcon />}
+                  startIcon={sceneImage ? <CheckCircleIcon /> : <MapIcon />}
                   fullWidth
                   size="large"
                   sx={{ mt: "auto" }}
-                  disabled={!isStepEnabled(1)}
+                  disabled={!isStepEnabled(1) || !!sceneImage}
                 >
-                  Browse Locations
+                  {sceneImage ? "Scene Selected ✓" : "Browse Locations"}
                 </Button>
               </Stack>
             </CardContent>

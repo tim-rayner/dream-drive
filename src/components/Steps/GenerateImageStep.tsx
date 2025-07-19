@@ -22,6 +22,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { useCredits } from "../../context/CreditsContext";
 import { spendCredit } from "../../lib/creditsService";
 
@@ -45,14 +46,16 @@ const generateFinalImage = async ({
   lat,
   lng,
   timeOfDay,
-  customInstructions, // Add customInstructions to parameters
+  customInstructions,
+  userId,
 }: {
   carImage: string;
   sceneImage: string;
   lat: number;
   lng: number;
   timeOfDay: TimeOfDay;
-  customInstructions: string; // Add customInstructions to parameters
+  customInstructions: string;
+  userId?: string;
 }) => {
   try {
     const response = await fetch("/api/generateFinalImage", {
@@ -66,7 +69,8 @@ const generateFinalImage = async ({
         lat,
         lng,
         timeOfDay,
-        customInstructions, // Pass to backend
+        customInstructions,
+        userId,
       }),
     });
 
@@ -113,6 +117,7 @@ export default function GenerateImageStep({
   const [customInstructions, setCustomInstructions] = useState<string>("");
   const [creditError, setCreditError] = useState<string | null>(null);
   const { credits, refreshCredits } = useCredits();
+  const { user } = useAuth();
 
   // Convert uploaded file to base64 for preview and API call
   useEffect(() => {
@@ -180,6 +185,7 @@ export default function GenerateImageStep({
         lng: mapData.position.lng,
       });
       console.log("⏰ Time of day:", timeOfDay);
+      console.log("📝 Custom instructions:", customInstructions);
 
       const result = await generateFinalImage({
         carImage: carImageUrl,
@@ -188,6 +194,7 @@ export default function GenerateImageStep({
         lng: mapData.position.lng,
         timeOfDay,
         customInstructions, // Pass to backend
+        userId: user?.id,
       });
 
       if (result.success && result.imageUrl) {
@@ -220,7 +227,9 @@ export default function GenerateImageStep({
   const handleComplete = () => {
     if (finalImageUrl) {
       // Save the generated image URL to localStorage
-      localStorage.setItem("generatedImageUrl", finalImageUrl);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("generatedImageUrl", finalImageUrl);
+      }
       onComplete(finalImageUrl);
     }
   };

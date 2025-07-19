@@ -1,6 +1,6 @@
 "use client";
 
-import { Logout } from "@mui/icons-material";
+import { History as HistoryIcon, Logout } from "@mui/icons-material";
 import {
   AppBar,
   Box,
@@ -37,7 +37,46 @@ export default function NavBar() {
     handleClose();
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          background: "rgba(26, 26, 46, 0.95)",
+          backdropFilter: "blur(10px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
+          color: "white",
+          top: 0,
+          zIndex: 1100,
+        }}
+      >
+        <Container maxWidth="xl">
+          <Toolbar sx={{ justifyContent: "space-between", py: 1 }}>
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                backgroundClip: "text",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontWeight: 700,
+                fontSize: "1.25rem",
+              }}
+            >
+              DreamDrive
+            </Typography>
+            <Box>
+              <Typography variant="body2" color="text.secondary">
+                Loading...
+              </Typography>
+            </Box>
+          </Toolbar>
+        </Container>
+      </AppBar>
+    );
+  }
 
   return (
     <AppBar
@@ -162,6 +201,21 @@ export default function NavBar() {
                     },
                   }}
                 >
+                  <MenuItem
+                    onClick={() => {
+                      router.push("/generations");
+                      handleClose();
+                    }}
+                    sx={{
+                      color: "white",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                    }}
+                  >
+                    <HistoryIcon sx={{ mr: 1, fontSize: 20 }} />
+                    My Generations
+                  </MenuItem>
                   <MenuItem
                     onClick={() => {
                       router.push("/settings");

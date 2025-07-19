@@ -10,12 +10,28 @@ export default function GeneratePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user && typeof window !== "undefined") {
       router.replace("/");
     }
   }, [user, loading, router]);
 
-  if (loading || (!user && typeof window !== "undefined")) {
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // If user is not authenticated, show loading while redirecting
+  if (!user) {
     return (
       <Box
         sx={{

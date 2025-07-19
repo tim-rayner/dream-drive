@@ -24,6 +24,8 @@ export default function CreditsDisplay({
   const rounded = useTransform(count, (latest) => Math.round(latest));
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const animation = animate(count, credits ?? 0, {
       duration: 0.8,
       ease: "easeOut",
