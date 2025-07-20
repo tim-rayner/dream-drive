@@ -19,7 +19,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
-// Stripe credit packs (dynamically generated from server constants)
+// Stripe credit packs (dynamically generated from environment variables)
 const CREDIT_PACKS = Object.entries(creditPacks).map(([priceId, pack]) => ({
   name: pack.name,
   credits: pack.credits,
