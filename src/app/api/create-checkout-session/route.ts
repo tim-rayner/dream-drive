@@ -59,11 +59,10 @@ export async function POST(req: NextRequest) {
 
     // Create Stripe Checkout Session
     const checkoutSession = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "payment",
       line_items: [
         {
-          price: priceId,
+          price: priceId as string,
           quantity: 1,
         },
       ],
