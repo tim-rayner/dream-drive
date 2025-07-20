@@ -2,6 +2,7 @@
 
 import ThemeWrapper from "@/components/ThemeWrapper";
 import { useAuth } from "@/context/AuthContext";
+import { creditPacks } from "@/lib/constants/stripeCreditPacks";
 import { Add as AddIcon } from "@mui/icons-material";
 import {
   Alert,
@@ -15,72 +16,66 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
-// Stripe credit packs (must match server map)
-const CREDIT_PACKS = [
-  {
-    name: "Starter",
-    credits: 1,
-    priceId: "price_1Rlz2zBQfFdEbYWybr7pPe9L",
-    description: "Try it out",
-    price: "£0.99",
-  },
-  {
-    name: "Explorer",
-    credits: 10,
-    priceId: "price_1Rlz3MBQfFdEbYWyDUhIOv9F",
-    description: "Most popular",
-    price: "£4.75",
-  },
-  {
-    name: "Cruiser",
-    credits: 50,
-    priceId: "price_1Rlz4XBQfFdEbYWyPBF4WedI",
-    description: "Great value",
-    price: "£9.00",
-  },
-  {
-    name: "Scenic Pack",
-    credits: 100,
-    priceId: "price_1Rlz50BQfFdEbYWyNsYZ28ec",
-    description: "Bulk discount",
-    price: "£21.25",
-  },
-  {
-    name: "Grand Tourer Pack",
-    credits: 150,
-    priceId: "price_1Rlz6OBQfFdEbYWyz2i02tmF",
-    description: "Best value",
-    price: "£40.00",
-  },
-  {
-    name: "Dealership Pack",
-    credits: 500,
-    priceId: "price_1Rlz7CBQfFdEbYWyuYir6YpY",
-    description: "For teams",
-    price: "£75.00",
-  },
-  {
-    name: "Pro Studio",
-    credits: 1000,
-    priceId: "price_1Rlz8mBQfFdEbYWyOWRrbKuH",
-    description: "Power user",
-    price: "£175.00",
-  },
-  {
-    name: "Enterprise",
-    credits: 2500,
-    priceId: "price_1Rlz9NBQfFdEbYWyxIeWBHo4",
-    description: "Enterprise",
-    price: "£600.00",
-  },
-];
+// Stripe credit packs (dynamically generated from server constants)
+const CREDIT_PACKS = Object.entries(creditPacks).map(([priceId, pack]) => ({
+  name: pack.name,
+  credits: pack.credits,
+  priceId,
+  description: getDescription(pack.name),
+  price: getPrice(pack.credits),
+}));
+
+function getDescription(name: string): string {
+  switch (name) {
+    case "Starter":
+      return "Try it out";
+    case "Explorer":
+      return "Most popular";
+    case "Cruiser":
+      return "Great value";
+    case "Scenic Pack":
+      return "Bulk discount";
+    case "Grand Tourer Pack":
+      return "Best value";
+    case "Dealership Pack":
+      return "For teams";
+    case "Pro Studio":
+      return "Power user";
+    case "Enterprise":
+      return "Enterprise";
+    default:
+      return "";
+  }
+}
+
+function getPrice(credits: number): string {
+  switch (credits) {
+    case 1:
+      return "£0.99";
+    case 10:
+      return "£4.75";
+    case 50:
+      return "£9.00";
+    case 100:
+      return "£21.25";
+    case 150:
+      return "£40.00";
+    case 500:
+      return "£75.00";
+    case 1000:
+      return "£175.00";
+    case 2500:
+      return "£600.00";
+    default:
+      return "";
+  }
+}
 
 // Component that uses useSearchParams
 function BuyCreditsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { user, session } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
