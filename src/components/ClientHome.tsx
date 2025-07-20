@@ -1,6 +1,7 @@
 "use client";
 
 import LoginButton from "@/components/LoginButton";
+import PromotionalBanner from "@/components/PromotionalBanner";
 import StepsOverview from "@/components/Steps/StepsOverview";
 import ThemeWrapper from "@/components/ThemeWrapper";
 import { useAuth } from "@/context/AuthContext";
@@ -97,7 +98,10 @@ export default function ClientHome() {
           {!user ? (
             // Show login call-to-action for unauthenticated users
             <Box sx={{ textAlign: "center", py: 8 }}>
-              <Stack spacing={4} alignItems="center" maxWidth={600} mx="auto">
+              <Stack spacing={4} alignItems="center" maxWidth={800} mx="auto">
+                {/* Promotional Banner */}
+                <PromotionalBanner />
+
                 <Typography
                   variant="h4"
                   component="h2"

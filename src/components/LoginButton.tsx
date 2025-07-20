@@ -1,18 +1,64 @@
 "use client";
 
 import { Avatar, Button, Stack, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginButton() {
   const { user, profile, login, logout, loading } = useAuth();
+  const [isOfferExpired, setIsOfferExpired] = useState(false);
+
+  // Check if offer has expired
+  useEffect(() => {
+    const checkOfferExpiration = () => {
+      const now = new Date();
+      const offerEndDate = new Date("2025-08-01T00:00:00Z");
+      setIsOfferExpired(now >= offerEndDate);
+    };
+
+    checkOfferExpiration();
+    // Check every minute to ensure it updates
+    const timer = setInterval(checkOfferExpiration, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   if (loading) return null;
 
   if (!user) {
     return (
-      <Button variant="contained" color="primary" onClick={login}>
-        Sign in with Google
-      </Button>
+      <Stack spacing={2} alignItems="center">
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={login}
+          size="large"
+          sx={{
+            fontSize: "1.1rem",
+            px: 4,
+            py: 1.5,
+            background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+            "&:hover": {
+              background: "linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)",
+              transform: "translateY(-2px)",
+              boxShadow: "0 8px 25px rgba(139, 92, 246, 0.3)",
+            },
+            transition: "all 0.3s ease",
+          }}
+        >
+          {isOfferExpired
+            ? "Sign in with Google"
+            : "🚀 Sign in with Google & Get 10 Free Credits"}
+        </Button>
+        {!isOfferExpired && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ opacity: 0.8 }}
+          >
+            Limited time offer - ends August 1st, 2025
+          </Typography>
+        )}
+      </Stack>
     );
   }
 

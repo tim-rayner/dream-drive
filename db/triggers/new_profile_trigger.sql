@@ -22,3 +22,9 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- 3. Add policy to allow trigger to insert profiles
+create policy "Trigger can insert profiles"
+  on public.public_profiles
+  for insert
+  with check (true);
