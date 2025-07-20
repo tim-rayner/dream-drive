@@ -214,7 +214,7 @@ export default function NavBar() {
                     }}
                   >
                     <HistoryIcon sx={{ mr: 1, fontSize: 20 }} />
-                    My Generations
+                    History
                   </MenuItem>
                   <MenuItem
                     onClick={() => {

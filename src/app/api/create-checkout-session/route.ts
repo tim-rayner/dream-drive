@@ -10,6 +10,33 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if Stripe secret key is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("❌ STRIPE_SECRET_KEY not configured");
+      return NextResponse.json(
+        {
+          error: "Stripe configuration error",
+          details: "Secret key not configured",
+        },
+        { status: 500 }
+      );
+    }
+
+    // Check if the secret key is valid format
+    if (!process.env.STRIPE_SECRET_KEY.startsWith("sk_")) {
+      console.error(
+        "❌ STRIPE_SECRET_KEY format invalid:",
+        process.env.STRIPE_SECRET_KEY.substring(0, 10) + "..."
+      );
+      return NextResponse.json(
+        {
+          error: "Stripe configuration error",
+          details: "Invalid secret key format",
+        },
+        { status: 500 }
+      );
+    }
+
     const { priceId }: { priceId: keyof typeof creditPacks } = await req.json();
 
     console.log("🔍 Received priceId:", priceId);
@@ -97,6 +124,14 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ User authenticated:", user.id);
 
+    // Log Stripe configuration
+    console.log(
+      "🔍 Stripe secret key prefix:",
+      process.env.STRIPE_SECRET_KEY?.substring(0, 7)
+    );
+    console.log("🔍 Creating checkout session for priceId:", priceId);
+    console.log("🔍 Origin URL:", req.nextUrl.origin);
+
     // Create Stripe Checkout Session
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -114,11 +149,33 @@ export async function POST(req: NextRequest) {
       cancel_url: `${req.nextUrl.origin}/buy?canceled=true`,
     });
 
+    console.log("✅ Checkout session created:", checkoutSession.id);
+
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error: unknown) {
     console.error("Stripe Checkout error:", error);
+
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+
+    // Return more specific error information
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: {
+          message: errorMessage,
+          type: errorName,
+          timestamp: new Date().toISOString(),
+        },
+      },
       { status: 500 }
     );
   }
