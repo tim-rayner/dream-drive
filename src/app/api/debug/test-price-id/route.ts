@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const isValid = creditPacks[priceId] !== undefined;
-    const packDetails = creditPacks[priceId];
+    const isValid =
+      creditPacks[priceId as keyof typeof creditPacks] !== undefined;
+    const packDetails = creditPacks[priceId as keyof typeof creditPacks];
 
     return NextResponse.json({
       priceId,

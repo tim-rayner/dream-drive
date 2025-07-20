@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
 
       console.log("User ID:", user_id, "Price ID:", price_id);
 
-      // Look up credit amount from environment-based map
-      const creditPack = creditPacks[price_id];
+      // Look up credit amount from server-only map
+      const creditPack = creditPacks[price_id as keyof typeof creditPacks];
       if (!creditPack) {
         console.error("Invalid price_id in session:", price_id);
         return NextResponse.json(

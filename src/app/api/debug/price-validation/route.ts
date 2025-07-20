@@ -50,7 +50,8 @@ export async function GET(req: NextRequest) {
       existsInStripe: availablePriceIds.includes(priceId),
       existsInEnv: Object.values(envVars).includes(priceId),
       isFallback:
-        !Object.values(envVars).includes(priceId) && creditPacks[priceId],
+        !Object.values(envVars).includes(priceId) &&
+        creditPacks[priceId as keyof typeof creditPacks],
     }));
 
     return NextResponse.json({

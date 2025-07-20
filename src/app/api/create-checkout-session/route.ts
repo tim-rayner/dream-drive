@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { priceId }: { priceId: string } = await req.json();
+    const { priceId }: { priceId: keyof typeof creditPacks } = await req.json();
 
     console.log("🔍 Received priceId:", priceId);
     console.log("🔍 Available creditPacks keys:", Object.keys(creditPacks));

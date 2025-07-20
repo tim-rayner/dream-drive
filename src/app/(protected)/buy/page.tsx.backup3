@@ -1,6 +1,5 @@
 "use client";
 
-import ThemeWrapper from "@/components/ThemeWrapper";
 import { useAuth } from "@/context/AuthContext";
 import { creditPacks } from "@/lib/constants/stripeCreditPacks";
 import { Add as AddIcon } from "@mui/icons-material";
@@ -17,16 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-
-// Stripe credit packs (dynamically generated from server constants)
-const CREDIT_PACKS = Object.entries(creditPacks).map(([priceId, pack]) => ({
-  name: pack.name,
-  credits: pack.credits,
-  priceId,
-  description: getDescription(pack.name),
-  price: getPrice(pack.credits),
-}));
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 function getDescription(name: string): string {
   switch (name) {
@@ -79,11 +69,29 @@ function BuyCreditsContent() {
   const searchParams = useSearchParams();
   const { user, session } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
+
+  // Ensure component is mounted on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Generate credit packs inside the component to ensure consistency
+  const creditPacksList = useMemo(() => {
+    if (!mounted) return [];
+    return Object.entries(creditPacks).map(([priceId, pack]) => ({
+      name: pack.name,
+      credits: pack.credits,
+      priceId,
+      description: getDescription(pack.name),
+      price: getPrice(pack.credits),
+    }));
+  }, [mounted]);
 
   // Show success message if redirected from Stripe
   const success = searchParams.get("success");
@@ -128,6 +136,24 @@ function BuyCreditsContent() {
       setLoading(null);
     }
   };
+
+  // Show loading state until mounted
+  if (!mounted) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          background:
+            "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -180,7 +206,7 @@ function BuyCreditsContent() {
               maxWidth: 900,
             }}
           >
-            {CREDIT_PACKS.map((pack) => (
+            {creditPacksList.map((pack) => (
               <Card
                 key={pack.priceId}
                 sx={{
@@ -217,55 +243,50 @@ function BuyCreditsContent() {
                     <Typography
                       variant="h6"
                       color="text.primary"
-                      fontWeight={600}
+                      sx={{ fontWeight: 600 }}
                     >
                       {pack.name}
                     </Typography>
 
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontStyle: "italic" }}
+                    >
                       {pack.description}
                     </Typography>
 
                     <Typography
                       variant="h5"
-                      color="primary.main"
-                      fontWeight={600}
-                      sx={{ mt: 1 }}
+                      color="primary"
+                      sx={{ fontWeight: 600, mt: 1 }}
                     >
                       {pack.price}
                     </Typography>
 
                     <Button
                       variant="contained"
-                      color="primary"
+                      startIcon={<AddIcon />}
                       disabled={loading === pack.priceId}
-                      startIcon={
-                        loading === pack.priceId ? (
-                          <CircularProgress size={20} color="inherit" />
-                        ) : (
-                          <AddIcon />
-                        )
-                      }
                       sx={{
+                        mt: 2,
+                        borderRadius: 3,
+                        textTransform: "none",
+                        fontWeight: 600,
                         background:
                           "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
                         "&:hover": {
                           background:
                             "linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)",
+                          boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
                         },
-                        px: 3,
-                        py: 1,
-                        borderRadius: 2,
-                        textTransform: "none",
-                        fontWeight: 600,
-                        mt: 2,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBuyCredits(pack.priceId);
                       }}
                     >
-                      {loading === pack.priceId ? "Redirecting..." : "Buy"}
+                      {loading === pack.priceId ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        "Buy"
+                      )}
                     </Button>
                   </Stack>
                 </CardContent>
@@ -273,7 +294,7 @@ function BuyCreditsContent() {
             ))}
           </Box>
 
-          {/* Info Section */}
+          {/* How Credits Work Card */}
           <Card
             sx={{
               background: "rgba(255, 255, 255, 0.03)",
@@ -285,7 +306,11 @@ function BuyCreditsContent() {
           >
             <CardContent>
               <Stack spacing={2}>
-                <Typography variant="h6" color="text.primary" fontWeight={600}>
+                <Typography
+                  variant="h6"
+                  color="text.primary"
+                  sx={{ fontWeight: 600 }}
+                >
                   How Credits Work
                 </Typography>
                 <Stack spacing={1}>
@@ -307,21 +332,37 @@ function BuyCreditsContent() {
             </CardContent>
           </Card>
 
-          {/* Success Snackbar */}
+          {/* Success Alert */}
+          {success && (
+            <Alert
+              severity="success"
+              sx={{
+                mt: 2,
+                maxWidth: 600,
+                background: "rgba(76, 175, 80, 0.1)",
+                border: "1px solid rgba(76, 175, 80, 0.3)",
+              }}
+            >
+              Payment successful! Your credits have been added to your account.
+            </Alert>
+          )}
+
+          {/* Error Snackbar */}
           <Snackbar
-            open={!!success || snackbar.open}
+            open={snackbar.open}
             autoHideDuration={6000}
-            onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            onClose={() =>
+              setSnackbar({ open: false, message: "", severity: "success" })
+            }
           >
             <Alert
-              onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-              severity={success ? "success" : snackbar.severity}
+              onClose={() =>
+                setSnackbar({ open: false, message: "", severity: "success" })
+              }
+              severity={snackbar.severity}
               sx={{ width: "100%" }}
             >
-              {success
-                ? "Payment successful! Credits will appear in your account shortly."
-                : snackbar.message}
+              {snackbar.message}
             </Alert>
           </Snackbar>
         </Stack>
@@ -350,10 +391,8 @@ function BuyCreditsLoading() {
 
 export default function BuyCreditsPage() {
   return (
-    <ThemeWrapper>
-      <Suspense fallback={<BuyCreditsLoading />}>
-        <BuyCreditsContent />
-      </Suspense>
-    </ThemeWrapper>
+    <Suspense fallback={<BuyCreditsLoading />}>
+      <BuyCreditsContent />
+    </Suspense>
   );
 }
