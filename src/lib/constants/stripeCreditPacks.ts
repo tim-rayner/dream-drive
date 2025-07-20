@@ -1,34 +1,34 @@
 export const creditPacks = {
   // Live mode price IDs from Stripe dashboard
-  price_1Rlz2zBQfFdEbYWybr7pPe9L: {
+  price_1RmbhHBUfFq91id2yTC2JteF: {
     name: "Starter",
     credits: 1,
   },
-  price_1Rlz3MBQfFdEbYWyDUhIOv9F: {
+  price_1RmbjkBUfFq91id2N9ujJJYN: {
     name: "Explorer",
     credits: 10,
   },
-  price_1Rlz4XBQfFdEbYWyPBF4WedI: {
+  price_1RmbkuBUfFq91id2aQhxyeRo: {
     name: "Cruiser",
     credits: 50,
   },
-  price_1Rlz50BQfFdEbYWyNsYZ28ec: {
+  price_1RmbnsBUfFq91id2DW5Fib0i: {
     name: "Scenic Pack",
     credits: 100,
   },
-  price_1Rlz6OBQfFdEbYWyz2i02tmF: {
+  price_1RmboTBUfFq91id2diYc0anf: {
     name: "Grand Tourer Pack",
     credits: 150,
   },
-  price_1Rlz7CBQfFdEbYWyuYir6YpY: {
+  price_1RmbpqBUfFq91id24iJWWiT5: {
     name: "Dealership Pack",
     credits: 500,
   },
-  price_1Rlz8mBQfFdEbYWyOWRrbKuH: {
+  price_1RmbqUBUfFq91id2cyx2BVrW: {
     name: "Pro Studio",
     credits: 1000,
   },
-  price_1Rlz9NBQfFdEbYWyxIeWBHo4: {
+  price_1Rmbr3BUfFq91id262sAYCaj: {
     name: "Enterprise",
     credits: 2500,
   },
