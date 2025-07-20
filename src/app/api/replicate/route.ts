@@ -1,8 +1,23 @@
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import Replicate from "replicate";
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user from secure cookies
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log("❌ Authentication failed:", authError);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const replicateToken = process.env.REPLICATE_API_TOKEN;
     if (!replicateToken) {

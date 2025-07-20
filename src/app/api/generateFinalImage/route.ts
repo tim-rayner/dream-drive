@@ -1,8 +1,6 @@
-import {
-  supabase,
-  supabaseAdmin,
-  type CreateGenerationData,
-} from "@/lib/supabase";
+import { supabaseAdmin, type CreateGenerationData } from "@/lib/supabase";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 interface GenerateFinalImageRequest {
@@ -380,6 +378,19 @@ async function generateFinalImage(
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user from secure cookies
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log("❌ Authentication failed:", authError);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body: GenerateFinalImageRequest = await request.json();
 
     // Validate required fields
@@ -474,66 +485,62 @@ export async function POST(request: NextRequest) {
     );
     console.log("Final image generated:", finalImageUrl);
 
-    // Save generation to database if userId is provided
+    // Save generation to database for authenticated user
     let savedGenerationId: string | null = null;
-    if (body.userId) {
-      try {
-        console.log("💾 Saving generation to database for user:", body.userId);
+    try {
+      console.log("💾 Saving generation to database for user:", user.id);
 
-        const generationData: CreateGenerationData = {
-          car_image_url: body.carImage,
-          scene_image_url: body.sceneImage,
-          lat: body.lat,
-          lng: body.lng,
-          time_of_day: body.timeOfDay,
-          custom_instructions: body.customInstructions,
-          final_image_url: finalImageUrl,
-          place_description: placeDescription,
-          scene_description: sceneDescription,
-        };
+      const generationData: CreateGenerationData = {
+        car_image_url: body.carImage,
+        scene_image_url: body.sceneImage,
+        lat: body.lat,
+        lng: body.lng,
+        time_of_day: body.timeOfDay,
+        custom_instructions: body.customInstructions,
+        final_image_url: finalImageUrl,
+        place_description: placeDescription,
+        scene_description: sceneDescription,
+      };
 
-        // Use admin client if available, otherwise use regular client
-        const client = supabaseAdmin || supabase;
-        console.log(
-          "📡 Using database client:",
-          supabaseAdmin ? "admin" : "regular"
-        );
+      // Use admin client if available, otherwise use authenticated client
+      const client = supabaseAdmin || supabase;
+      console.log(
+        "📡 Using database client:",
+        supabaseAdmin ? "admin" : "authenticated"
+      );
 
-        const { data: savedGeneration, error: saveError } = await client
-          .from("generations")
-          .insert({
-            ...generationData,
-            user_id: body.userId,
-            is_revision: body.isRevision || false,
-            original_generation_id: body.originalGenerationId || null,
-            revision_used: false,
-          })
-          .select("id")
-          .single();
+      const { data: savedGeneration, error: saveError } = await client
+        .from("generations")
+        .insert({
+          ...generationData,
+          user_id: user.id,
+          is_revision: body.isRevision || false,
+          original_generation_id: body.originalGenerationId || null,
+          revision_used: false,
+        })
+        .select("id")
+        .single();
 
-        if (saveError) {
-          console.error("❌ Error saving generation to database:", saveError);
-          console.error("❌ Error details:", {
-            code: saveError.code,
-            message: saveError.message,
-            details: saveError.details,
-            hint: saveError.hint,
-          });
-          // Don't fail the request if database save fails
-        } else {
-          savedGenerationId = savedGeneration?.id || null;
-          console.log("✅ Generation saved with ID:", savedGenerationId);
-        }
-      } catch (error) {
-        console.error("❌ Exception saving generation:", error);
+      if (saveError) {
+        console.error("❌ Error saving generation to database:", saveError);
         console.error("❌ Error details:", {
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+          code: saveError.code,
+          message: saveError.message,
+          details: saveError.details,
+          hint: saveError.hint,
         });
         // Don't fail the request if database save fails
+      } else {
+        savedGenerationId = savedGeneration?.id || null;
+        console.log("✅ Generation saved with ID:", savedGenerationId);
       }
-    } else {
-      console.log("ℹ️ No userId provided, skipping database save");
+    } catch (error) {
+      console.error("❌ Exception saving generation:", error);
+      console.error("❌ Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      // Don't fail the request if database save fails
     }
 
     return NextResponse.json({

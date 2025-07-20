@@ -1,32 +1,29 @@
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    // Get authenticated user from secure cookies
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    console.log("🔍 Fetching generations for user:", userId);
-
-    if (!userId) {
-      console.log("❌ No userId provided");
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
+    if (authError || !user) {
+      console.log("❌ Authentication failed:", authError);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Use admin client to bypass RLS issues, but still filter by user_id for security
-    const client = supabaseAdmin || supabase;
-    console.log(
-      "📡 Querying database for generations using:",
-      supabaseAdmin ? "admin client" : "regular client"
-    );
+    console.log("🔍 Fetching generations for authenticated user:", user.id);
 
-    const { data: generations, error } = await client
+    // Query generations for the authenticated user
+    const { data: generations, error } = await supabase
       .from("generations")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -45,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     console.log("✅ Successfully fetched generations:", {
       count: generations?.length || 0,
-      userId: userId,
+      userId: user.id,
     });
 
     if (generations && generations.length > 0) {

@@ -1,22 +1,32 @@
-import { supabase } from "@/lib/supabase";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    // Get authenticated user from secure cookies
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    console.log("🧪 Test: Checking generations for user:", userId);
-
-    if (!userId) {
-      return NextResponse.json({ error: "User ID required" }, { status: 400 });
+    if (authError || !user) {
+      console.log("❌ Authentication failed:", authError);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.log(
+      "🧪 Test: Checking generations for authenticated user:",
+      user.id
+    );
 
     // Simple test - just get the count
     const { count, error } = await supabase
       .from("generations")
       .select("*", { count: "exact", head: true })
-      .eq("user_id", userId);
+      .eq("user_id", user.id);
 
     console.log("🧪 Test: Count result:", { count, error });
 
@@ -24,7 +34,7 @@ export async function GET(request: NextRequest) {
     const { data, error: dataError } = await supabase
       .from("generations")
       .select("id, user_id, created_at, place_description")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .limit(5);
 
     console.log("🧪 Test: Data result:", {
@@ -36,7 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       test: {
-        userId,
+        userId: user.id,
         countResult: { count, error },
         dataResult: {
           count: data?.length || 0,

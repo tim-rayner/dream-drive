@@ -1,5 +1,6 @@
 import { creditPacks } from "@/lib/constants/stripeCreditPacks";
-import { createServerClient } from "@supabase/ssr";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -83,37 +84,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid priceId" }, { status: 400 });
     }
 
-    // Get the JWT token from Authorization header
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Missing authorization token" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-
-    // Validate the JWT token with Supabase
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return [];
-          },
-          setAll() {
-            // Not needed for token validation
-          },
-        },
-      }
-    );
-
+    // Get user from secure cookie session
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(token);
+    } = await supabase.auth.getUser();
 
     console.log("🔍 Auth result:", { user: user?.id, error });
 

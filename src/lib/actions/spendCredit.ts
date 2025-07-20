@@ -1,27 +1,25 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function spendCredit() {
   try {
-    // For now, we'll use a simpler approach that works with the client-side auth
-    // This will be replaced with proper server-side auth when the service role key is available
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Use secure cookie-based authentication
+    const cookieStore = cookies();
+    const supabase = createServerActionClient({ cookies: () => cookieStore });
 
-    // Get the current session
+    // Get the current user from secure cookies
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       throw new Error("Unauthorized: No valid session");
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Get current credits
     const { data: creditData, error: fetchError } = await supabase

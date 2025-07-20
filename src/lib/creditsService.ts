@@ -13,20 +13,20 @@ export interface CreditsResult {
 
 export async function spendCredit(): Promise<CreditsResult> {
   try {
-    // Get the current session
+    // Get the current user from secure cookies
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       return {
         success: false,
         error: "Unauthorized: No valid session",
       };
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Get current credits
     const { data: creditData, error: fetchError } = await supabase
@@ -115,20 +115,20 @@ export async function addCredits(amount: number): Promise<CreditsResult> {
       };
     }
 
-    // Get user session
+    // Get the current user from secure cookies
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       return {
         success: false,
         error: "Unauthorized: No valid session",
       };
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Check if credits row exists
     const { data: existingCredits, error: fetchError } = await supabase

@@ -1,6 +1,8 @@
 import { refundCredit } from "@/lib/actions/refundCredit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { validateRevisionRequest } from "@/lib/validateRevision";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 interface RevisionRequest {
@@ -11,7 +13,6 @@ interface RevisionRequest {
   lng: number;
   timeOfDay: "sunrise" | "afternoon" | "dusk" | "night";
   customInstructions?: string;
-  userId: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -19,20 +20,28 @@ export async function POST(request: NextRequest) {
   let requestBody: RevisionRequest | null = null;
 
   try {
+    // Get authenticated user from secure cookies
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log("❌ Authentication failed:", authError);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body: RevisionRequest = await request.json();
     requestBody = body;
 
     // Validate required fields
-    if (
-      !body.originalGenerationId ||
-      !body.carImage ||
-      !body.sceneImage ||
-      !body.userId
-    ) {
+    if (!body.originalGenerationId || !body.carImage || !body.sceneImage) {
       return NextResponse.json(
         {
           error:
-            "Missing required fields: originalGenerationId, carImage, sceneImage, userId",
+            "Missing required fields: originalGenerationId, carImage, sceneImage",
         },
         { status: 400 }
       );
@@ -72,9 +81,9 @@ export async function POST(request: NextRequest) {
       body.originalGenerationId
     );
 
-    // Validate the revision request
+    // Validate the revision request using authenticated user
     const validation = await validateRevisionRequest(
-      body.userId,
+      user.id,
       body.originalGenerationId,
       body.carImage
     );
@@ -129,7 +138,6 @@ export async function POST(request: NextRequest) {
           lng: body.lng,
           timeOfDay: body.timeOfDay,
           customInstructions: body.customInstructions,
-          userId: body.userId,
           isRevision: true,
           originalGenerationId: body.originalGenerationId,
         }),
@@ -165,32 +173,43 @@ export async function POST(request: NextRequest) {
     if (originalGenerationUpdated && requestBody) {
       console.log("🔄 Attempting to refund credit due to revision failure");
       try {
-        const refundResult = await refundCredit(requestBody.userId);
-        if (refundResult.success) {
-          console.log(
-            "✅ Credit refunded successfully due to revision failure"
-          );
+        // Get user from secure cookies for refund
+        const cookieStore = cookies();
+        const supabase = createRouteHandlerClient({
+          cookies: () => cookieStore,
+        });
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-          // Optionally revert the revision_used flag if the generation failed
-          if (supabaseAdmin) {
-            const { error: revertError } = await supabaseAdmin
-              .from("generations")
-              .update({ revision_used: false })
-              .eq("id", requestBody.originalGenerationId);
+        if (user) {
+          const refundResult = await refundCredit(user.id);
+          if (refundResult.success) {
+            console.log(
+              "✅ Credit refunded successfully due to revision failure"
+            );
 
-            if (revertError) {
-              console.error(
-                "❌ Failed to revert revision_used flag:",
-                revertError
-              );
-            } else {
-              console.log(
-                "✅ Reverted revision_used flag for original generation"
-              );
+            // Optionally revert the revision_used flag if the generation failed
+            if (supabaseAdmin) {
+              const { error: revertError } = await supabaseAdmin
+                .from("generations")
+                .update({ revision_used: false })
+                .eq("id", requestBody.originalGenerationId);
+
+              if (revertError) {
+                console.error(
+                  "❌ Failed to revert revision_used flag:",
+                  revertError
+                );
+              } else {
+                console.log(
+                  "✅ Reverted revision_used flag for original generation"
+                );
+              }
             }
+          } else {
+            console.error("❌ Failed to refund credit:", refundResult.error);
           }
-        } else {
-          console.error("❌ Failed to refund credit:", refundResult.error);
         }
       } catch (refundError) {
         console.error("❌ Exception during credit refund:", refundError);

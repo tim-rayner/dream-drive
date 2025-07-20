@@ -34,7 +34,7 @@ export default function GenerationsPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/generations?userId=${user.id}`);
+      const response = await fetch(`/api/generations`);
       console.log("📡 Frontend: API response status:", response.status);
 
       const result = await response.json();

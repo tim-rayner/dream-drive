@@ -1,9 +1,7 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 // Allowed credit amounts
 const ALLOWED_CREDIT_AMOUNTS = [1, 10, 50, 100, 150, 1000];
@@ -19,19 +17,21 @@ export async function addCredits(amount: number) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Use secure cookie-based authentication
+    const cookieStore = cookies();
+    const supabase = createServerActionClient({ cookies: () => cookieStore });
 
-    // Get user session
+    // Get the current user from secure cookies
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       throw new Error("Unauthorized: No valid session");
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Check if credits row exists
     const { data: existingCredits, error: fetchError } = await supabase
