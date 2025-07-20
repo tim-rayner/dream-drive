@@ -12,7 +12,47 @@ export async function POST(req: NextRequest) {
   try {
     const { priceId }: { priceId: keyof typeof creditPacks } = await req.json();
 
+    console.log("🔍 Received priceId:", priceId);
+    console.log("🔍 Available creditPacks keys:", Object.keys(creditPacks));
+    console.log("🔍 creditPacks[priceId]:", creditPacks[priceId]);
+    console.log("🔍 Environment variables:");
+    console.log(
+      "   STRIPE_STARTER_PRICE_ID:",
+      process.env.STRIPE_STARTER_PRICE_ID || "NOT_SET"
+    );
+    console.log(
+      "   STRIPE_EXPLORER_PRICE_ID:",
+      process.env.STRIPE_EXPLORER_PRICE_ID || "NOT_SET"
+    );
+    console.log(
+      "   STRIPE_CRUISER_PRICE_ID:",
+      process.env.STRIPE_CRUISER_PRICE_ID || "NOT_SET"
+    );
+    console.log(
+      "   STRIPE_SCENIC_PRICE_ID:",
+      process.env.STRIPE_SCENIC_PRICE_ID || "NOT_SET"
+    );
+    console.log(
+      "   STRIPE_GRAND_TOURER_PRICE_ID:",
+      process.env.STRIPE_GRAND_TOURER_PRICE_ID || "NOT_SET"
+    );
+    console.log(
+      "   STRIPE_DEALERSHIP_PRICE_ID:",
+      process.env.STRIPE_DEALERSHIP_PRICE_ID || "NOT_SET"
+    );
+    console.log(
+      "   STRIPE_PRO_STUDIO_PRICE_ID:",
+      process.env.STRIPE_PRO_STUDIO_PRICE_ID || "NOT_SET"
+    );
+    console.log(
+      "   STRIPE_ENTERPRISE_PRICE_ID:",
+      process.env.STRIPE_ENTERPRISE_PRICE_ID || "NOT_SET"
+    );
+
     if (!priceId || !creditPacks[priceId]) {
+      console.log("❌ Invalid priceId validation failed");
+      console.log("❌ priceId:", priceId);
+      console.log("❌ creditPacks keys:", Object.keys(creditPacks));
       return NextResponse.json({ error: "Invalid priceId" }, { status: 400 });
     }
 
