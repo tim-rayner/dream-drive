@@ -16,7 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ChooseLocationStep from "./ChooseLocationStep";
 import GenerateImageStep from "./GenerateImageStep";
 import UploadPhotoStep from "./UploadPhotoStep";
@@ -35,6 +35,7 @@ const StepsOverview = () => {
     position: null,
     marker: null,
   });
+  const locationStepRef = useRef(null);
 
   // Save file to localStorage when it changes
   useEffect(() => {
@@ -152,6 +153,15 @@ const StepsOverview = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (activeStep === 1 && locationStepRef.current) {
+      locationStepRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [activeStep]);
+
   const handleFileUpload = useCallback((file) => {
     setUploadedFile(file);
     setStepCompletion((prev) => ({ ...prev, 0: true }));
@@ -250,6 +260,7 @@ const StepsOverview = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
+            ref={locationStepRef}
           >
             <ChooseLocationStep
               onComplete={() =>

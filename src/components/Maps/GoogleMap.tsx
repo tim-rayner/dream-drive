@@ -139,6 +139,30 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           }
         );
 
+        // Clamp Street View zoom to a reasonable maximum (e.g., 2)
+        const MAX_STREETVIEW_ZOOM = 2;
+        streetView.addListener("zoom_changed", () => {
+          const currentZoom = streetView.getZoom();
+          if (currentZoom > MAX_STREETVIEW_ZOOM) {
+            streetView.setZoom(MAX_STREETVIEW_ZOOM);
+          }
+        });
+
+        // On mobile, allow vertical scroll gestures to bubble up when at max zoom
+        if (streetViewRef.current) {
+          streetViewRef.current.addEventListener(
+            "touchmove",
+            (e) => {
+              if (streetView.getZoom() >= MAX_STREETVIEW_ZOOM) {
+                // Allow parent scroll if at max zoom
+                e.stopPropagation();
+                // Do not call e.preventDefault();
+              }
+            },
+            { passive: false }
+          );
+        }
+
         // Add listener to track POV changes
         streetView.addListener("pov_changed", () => {
           const currentPov = streetView.getPov();

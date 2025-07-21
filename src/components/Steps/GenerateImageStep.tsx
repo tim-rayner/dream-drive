@@ -435,6 +435,10 @@ export default function GenerateImageStep({
         }}
         aria-label="time of day"
         sx={{
+          flexWrap: "wrap",
+          width: "100%",
+          justifyContent: { xs: "center", sm: "flex-start" },
+          gap: { xs: 1, sm: 2 },
           "& .MuiToggleButton-root": {
             borderRadius: "12px",
             px: { xs: 2, sm: 3 },
@@ -455,6 +459,9 @@ export default function GenerateImageStep({
             "&:hover": {
               backgroundColor: "grey.100",
             },
+            flex: "1 1 120px",
+            minWidth: { xs: "45%", sm: "auto" },
+            maxWidth: { xs: "100%", sm: "none" },
           },
         }}
       >
