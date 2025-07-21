@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.replicate.com https://maps.googleapis.com https://accounts.google.com https://*.supabase.co",
+              "connect-src 'self' https://api.replicate.com https://maps.googleapis.com https://accounts.google.com https://*.supabase.co https://places.googleapis.com",
               "frame-src https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",
