@@ -89,7 +89,17 @@ function GenerationGalleryItem({ generation }: { generation: Generation }) {
   );
 }
 
-function GenerationModal({ open, onClose, generation, onRequestRevision }) {
+function GenerationModal({
+  open,
+  onClose,
+  generation,
+  onRequestRevision,
+}: {
+  open: boolean;
+  onClose: () => void;
+  generation: Generation | null;
+  onRequestRevision: (generation: Generation) => void;
+}) {
   if (!generation) return null;
   const imageUrl = generation.final_image_url || generation.scene_image_url;
   return (
@@ -174,7 +184,8 @@ export default function GenerationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
-  const [selectedGeneration, setSelectedGeneration] = useState(null);
+  const [selectedGeneration, setSelectedGeneration] =
+    useState<Generation | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
