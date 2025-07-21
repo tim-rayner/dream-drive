@@ -134,7 +134,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       return null;
     },
-    [acceptedTypes, maxFileSize, enableProcessing]
+    [maxFileSize, enableProcessing]
   );
 
   const handleFileSelect = useCallback(

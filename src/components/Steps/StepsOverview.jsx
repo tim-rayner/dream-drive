@@ -36,6 +36,7 @@ const StepsOverview = () => {
     marker: null,
   });
   const locationStepRef = useRef(null);
+  const mapContainerRef = useRef(null);
 
   // Save file to localStorage when it changes
   useEffect(() => {
@@ -154,8 +155,8 @@ const StepsOverview = () => {
   }, []);
 
   useEffect(() => {
-    if (activeStep === 1 && locationStepRef.current) {
-      locationStepRef.current.scrollIntoView({
+    if (activeStep === 1 && mapContainerRef.current) {
+      mapContainerRef.current.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
@@ -244,9 +245,10 @@ const StepsOverview = () => {
             transition={{ duration: 0.3 }}
           >
             <UploadPhotoStep
-              onComplete={() =>
-                setStepCompletion((prev) => ({ ...prev, 0: true }))
-              }
+              onComplete={() => {
+                setStepCompletion((prev) => ({ ...prev, 0: true }));
+                setActiveStep(1);
+              }}
               uploadedFile={uploadedFile}
               onFileUpload={handleFileUpload}
             />
@@ -260,7 +262,6 @@ const StepsOverview = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            ref={locationStepRef}
           >
             <ChooseLocationStep
               onComplete={() =>
@@ -270,6 +271,7 @@ const StepsOverview = () => {
               mapData={mapData}
               onSceneCapture={handleSceneCapture}
               onMapDataUpdate={handleMapDataUpdate}
+              mapContainerRef={mapContainerRef}
             />
           </motion.div>
         );

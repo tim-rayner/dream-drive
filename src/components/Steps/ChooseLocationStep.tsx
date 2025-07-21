@@ -10,6 +10,7 @@ interface ChooseLocationStepProps {
   };
   onSceneCapture: (sceneImage: string) => void;
   onMapDataUpdate: (mapData: unknown) => void;
+  mapContainerRef?: React.Ref<HTMLDivElement>;
 }
 
 export default function ChooseLocationStep({
@@ -18,6 +19,7 @@ export default function ChooseLocationStep({
   mapData,
   onSceneCapture,
   onMapDataUpdate,
+  mapContainerRef,
 }: ChooseLocationStepProps) {
   const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
@@ -70,6 +72,7 @@ export default function ChooseLocationStep({
       </Typography>
 
       <Box
+        ref={mapContainerRef}
         sx={{
           mb: { xs: 2, sm: 3 },
           px: { xs: 0, sm: 0 },

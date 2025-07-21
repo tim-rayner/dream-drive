@@ -1,3 +1,15 @@
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import {
+  Alert,
+  Box,
+  Link,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Paper,
+  Typography,
+} from "@mui/material";
 import React, { useState } from "react";
 import GoogleMap from "./GoogleMap";
 
@@ -10,32 +22,35 @@ const InteractiveGoogleMap: React.FC = () => {
 
   if (!GOOGLE_MAPS_API_KEY) {
     return (
-      <div
-        style={{
-          padding: "20px",
+      <Paper
+        elevation={3}
+        sx={{
+          p: 3,
           textAlign: "center",
-          backgroundColor: "#f5f5f5",
-          borderRadius: "8px",
-          margin: "20px",
+          bgcolor: "#f5f5f5",
+          borderRadius: 2,
+          m: 3,
         }}
       >
-        <h3>Google Maps API Key Required</h3>
-        <p>
+        <Typography variant="h5" gutterBottom>
+          Google Maps API Key Required
+        </Typography>
+        <Typography variant="body1" gutterBottom>
           Please set the <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{" "}
           environment variable with your Google Maps API key.
-        </p>
-        <p>
+        </Typography>
+        <Typography variant="body2">
           You can get a free API key from the{" "}
-          <a
+          <Link
             href="https://console.cloud.google.com/google/maps-apis/credentials"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "#007bff", textDecoration: "none" }}
+            sx={{ color: "#007bff", textDecoration: "none" }}
           >
             Google Cloud Console
-          </a>
-        </p>
-      </div>
+          </Link>
+        </Typography>
+      </Paper>
     );
   }
 
@@ -45,76 +60,138 @@ const InteractiveGoogleMap: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Google Maps Component Demo</h2>
-      <p>Click anywhere on the map to drop a pin and switch to Street View!</p>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Google Maps Component Demo
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 2 }}>
+        Click anywhere on the map to drop a pin and switch to Street View!
+      </Typography>
 
-      <GoogleMap
-        apiKey={GOOGLE_MAPS_API_KEY}
-        initialCenter={{ lat: 35.3606, lng: 138.7274 }} // Mount Fuji, Japan
-        initialZoom={12}
-        mapId="DEMO_MAP_ID" // You can create custom Map IDs in Google Cloud Console
-        onSceneCapture={handleSceneCapture}
-        style={{
+      <Box
+        sx={{
           border: "1px solid #ddd",
-          borderRadius: "8px",
+          borderRadius: 2,
           overflow: "hidden",
+          mb: 3,
         }}
-      />
+      >
+        <GoogleMap
+          apiKey={GOOGLE_MAPS_API_KEY}
+          initialCenter={{ lat: 35.3606, lng: 138.7274 }} // Mount Fuji, Japan
+          initialZoom={12}
+          mapId="DEMO_MAP_ID" // You can create custom Map IDs in Google Cloud Console
+          onSceneCapture={handleSceneCapture}
+        />
+      </Box>
 
       {/* Scene Preview */}
       {sceneImage && (
-        <div
-          style={{
-            marginTop: "20px",
-            padding: "15px",
-            backgroundColor: "#e8f5e8",
-            borderRadius: "8px",
+        <Paper
+          elevation={2}
+          sx={{
+            mt: 3,
+            p: 2,
+            bgcolor: "#e8f5e8",
+            borderRadius: 2,
             border: "1px solid #4CAF50",
           }}
         >
-          <h4>📸 Captured Scene Preview</h4>
-          <img
+          <Typography
+            variant="h6"
+            sx={{ display: "flex", alignItems: "center", mb: 1 }}
+          >
+            <Box component="span" sx={{ mr: 1 }} role="img" aria-label="camera">
+              📸
+            </Box>
+            Captured Scene Preview
+          </Typography>
+          <Box
+            component="img"
             src={sceneImage}
             alt="Captured scene"
-            style={{
+            sx={{
               maxWidth: "100%",
               height: "auto",
-              borderRadius: "4px",
+              borderRadius: 1,
               border: "1px solid #ddd",
             }}
           />
-          <p style={{ marginTop: "10px", fontSize: "14px", color: "#666" }}>
+          <Typography sx={{ mt: 2, fontSize: 14, color: "#666" }}>
             This scene has been captured and stored. You can now proceed to step
             3!
-          </p>
-        </div>
+          </Typography>
+        </Paper>
       )}
 
-      <div style={{ marginTop: "20px", fontSize: "14px", color: "#666" }}>
-        <h4>Features:</h4>
-        <ul>
-          <li>✅ Standard 2D Google Map (roadmap mode)</li>
-          <li>✅ Click anywhere to drop a pin</li>
-          <li>✅ Automatic switch to Street View at pin location</li>
-          <li>✅ &quot;Back to Map&quot; button overlay</li>
-          <li>✅ Preserves pin when returning to map view</li>
-          <li>
-            ✅ <strong>NEW:</strong> &quot;Choose Scene&quot; button in Street
-            View
-          </li>
-          <li>
-            ✅ <strong>NEW:</strong> Scene capture and preview
-          </li>
-        </ul>
+      <Box sx={{ mt: 3, color: "#666" }}>
+        <Typography variant="h6" gutterBottom>
+          Features:
+        </Typography>
+        <List dense>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Standard 2D Google Map (roadmap mode)" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Click anywhere to drop a pin" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Automatic switch to Street View at pin location" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Back to Map button overlay" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Preserves pin when returning to map view" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <>
+                  <strong>NEW:</strong> &quot;Choose Scene&quot; button in
+                  Street View
+                </>
+              }
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <CheckCircleIcon color="success" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <>
+                  <strong>NEW:</strong> Scene capture and preview
+                </>
+              }
+            />
+          </ListItem>
+        </List>
 
-        <div
-          style={{
-            marginTop: "15px",
-            padding: "10px",
-            backgroundColor: "#fff3cd",
+        <Alert
+          severity="warning"
+          sx={{
+            mt: 2,
+            bgcolor: "#fff3cd",
             border: "1px solid #ffeaa7",
-            borderRadius: "4px",
             color: "#856404",
           }}
         >
@@ -122,9 +199,9 @@ const InteractiveGoogleMap: React.FC = () => {
           this is due to rate limiting with the demo Map ID. For production use,
           create your own Map ID in the Google Cloud Console to avoid these
           limits.
-        </div>
-      </div>
-    </div>
+        </Alert>
+      </Box>
+    </Box>
   );
 };
 
