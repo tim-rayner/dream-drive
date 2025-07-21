@@ -5,7 +5,6 @@ import {
   History as HistoryIcon,
 } from "@mui/icons-material";
 import ImageNotSupportedIcon from "@mui/icons-material/ImageNotSupported";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
   Alert,
   Box,
@@ -19,6 +18,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import { useEffect, useRef, useState } from "react";
+import GenerationResult from "../../../components/GenerationResult";
 import ThemeWrapper from "../../../components/ThemeWrapper";
 import { useAuth } from "../../../context/AuthContext";
 import { type Generation } from "../../../lib/supabase";
@@ -93,15 +93,14 @@ function GenerationModal({
   open,
   onClose,
   generation,
-  onRequestRevision,
+  onRevisionComplete,
 }: {
   open: boolean;
   onClose: () => void;
   generation: Generation | null;
-  onRequestRevision: (generation: Generation) => void;
+  onRevisionComplete: (newGeneration: Generation) => void;
 }) {
   if (!generation) return null;
-  const imageUrl = generation.final_image_url || generation.scene_image_url;
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ textAlign: "center", fontWeight: 700 }}>
@@ -109,70 +108,18 @@ function GenerationModal({
       </DialogTitle>
       <DialogContent
         sx={{
+          p: 0,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: 2,
         }}
       >
-        <Box
-          sx={{
-            width: "100%",
-            aspectRatio: "1 / 1",
-            mb: 2,
-            borderRadius: 2,
-            overflow: "hidden",
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Generation preview"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
-            />
-          ) : (
-            <Box sx={{ textAlign: "center", color: "text.secondary" }}>
-              <ImageNotSupportedIcon sx={{ fontSize: 48, mb: 1 }} />
-              <Typography variant="caption" color="text.secondary">
-                No image available
-              </Typography>
-            </Box>
-          )}
-        </Box>
-        <Typography variant="body2" color="text.secondary">
-          Created:{" "}
-          {generation.created_at
-            ? new Date(generation.created_at).toLocaleString()
-            : "Unknown"}
-        </Typography>
-        {generation.place_description && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ display: "flex", alignItems: "center", gap: 1 }}
-          >
-            <LocationOnIcon fontSize="small" sx={{ mr: 0.5 }} />
-            {generation.place_description}
-          </Typography>
-        )}
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mt: 2, minWidth: 180, minHeight: 44, fontWeight: 600 }}
-          onClick={() => onRequestRevision(generation)}
-        >
-          Request Revision
-        </Button>
+        <GenerationResult
+          generation={generation}
+          onRevisionComplete={onRevisionComplete}
+          onScrollToTop={onClose}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -400,10 +347,7 @@ export default function GenerationsPage() {
                   open={modalOpen}
                   onClose={() => setModalOpen(false)}
                   generation={selectedGeneration}
-                  onRequestRevision={(gen) => {
-                    // TODO: Implement revision logic/modal as before
-                    alert("Request revision for generation " + gen.id);
-                  }}
+                  onRevisionComplete={handleRevisionComplete}
                 />
               </>
             )}

@@ -6,6 +6,7 @@ import {
   Edit as EditIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Alert,
   Box,
@@ -18,6 +19,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   LinearProgress,
   Snackbar,
   Stack,
@@ -25,6 +27,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -45,6 +49,8 @@ export default function GenerationResult({
   onScrollToTop,
 }: GenerationResultProps) {
   const { user } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
   const [revisionLoading, setRevisionLoading] = useState(false);
   const [revisionError, setRevisionError] = useState<string | null>(null);
@@ -284,11 +290,41 @@ export default function GenerationResult({
         onClose={() => !revisionLoading && setRevisionDialogOpen(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            borderRadius: isMobile ? 0 : 3,
+            m: isMobile ? 0 : 2,
+            width: "100%",
+            minHeight: isMobile ? "100vh" : "auto",
+          },
+        }}
       >
-        <DialogTitle>
+        <DialogTitle
+          sx={{
+            fontSize: { xs: "1.2rem", sm: "1.5rem" },
+            fontWeight: 600,
+            p: { xs: 2, sm: 3 },
+            pr: isMobile ? 5 : 3,
+          }}
+        >
           {revisionLoading ? "Generating Revision..." : "Request Revision"}
+          {isMobile && (
+            <IconButton
+              aria-label="close"
+              onClick={() => !revisionLoading && setRevisionDialogOpen(false)}
+              sx={{
+                position: "absolute",
+                right: 8,
+                top: 8,
+                color: (theme) => theme.palette.grey[500],
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          )}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
           {revisionLoading && (
             <Box sx={{ mb: 3 }}>
               <Stack spacing={2} alignItems="center">
@@ -306,7 +342,11 @@ export default function GenerationResult({
           )}
 
           <Stack spacing={3} sx={{ mt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: { xs: "0.95rem", sm: "1rem" } }}
+            >
               You can modify the location, time of day, and custom instructions
               for your revision. The car image cannot be changed.
             </Typography>
@@ -316,7 +356,7 @@ export default function GenerationResult({
               <Typography variant="subtitle2" gutterBottom>
                 Location Coordinates
               </Typography>
-              <Stack direction="row" spacing={2}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <TextField
                   label="Latitude"
                   type="number"
@@ -331,6 +371,7 @@ export default function GenerationResult({
                   size="small"
                   fullWidth
                   disabled={revisionLoading}
+                  sx={{ mb: { xs: 2, sm: 0 } }}
                 />
                 <TextField
                   label="Longitude"
@@ -362,8 +403,38 @@ export default function GenerationResult({
                   value &&
                   setRevisionData((prev) => ({ ...prev, timeOfDay: value }))
                 }
-                size="small"
+                size={isMobile ? "medium" : "small"}
                 disabled={revisionLoading}
+                sx={{
+                  flexWrap: "wrap",
+                  width: "100%",
+                  justifyContent: { xs: "center", sm: "flex-start" },
+                  gap: { xs: 1, sm: 2 },
+                  "& .MuiToggleButton-root": {
+                    borderRadius: "12px",
+                    px: { xs: 2, sm: 3 },
+                    py: { xs: 1, sm: 1.5 },
+                    textTransform: "none",
+                    fontWeight: 600,
+                    border: "2px solid",
+                    borderColor: "divider",
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
+                    "&.Mui-selected": {
+                      backgroundColor: "primary.main",
+                      color: "white",
+                      borderColor: "primary.main",
+                      "&:hover": {
+                        backgroundColor: "primary.dark",
+                      },
+                    },
+                    "&:hover": {
+                      backgroundColor: "grey.100",
+                    },
+                    flex: "1 1 120px",
+                    minWidth: { xs: "45%", sm: "auto" },
+                    maxWidth: { xs: "100%", sm: "none" },
+                  },
+                }}
               >
                 <ToggleButton value="sunrise">Sunrise</ToggleButton>
                 <ToggleButton value="afternoon">Afternoon</ToggleButton>
@@ -400,7 +471,7 @@ export default function GenerationResult({
             )}
           </Stack>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: { xs: 2, sm: 3 } }}>
           <Button
             onClick={() => setRevisionDialogOpen(false)}
             disabled={revisionLoading}
