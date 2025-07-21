@@ -1,8 +1,8 @@
-# 🔄 DreamDrive Revision System
+# 🔄 DriveDream Revision System
 
 ## Overview
 
-The DreamDrive revision system allows users to regenerate AI images **once per original credit use** with modified parameters while maintaining the same car image. This system is designed to be secure, controlled, and user-friendly.
+The DriveDream revision system allows users to regenerate AI images **once per original credit use** with modified parameters while maintaining the same car image. This system is designed to be secure, controlled, and user-friendly.
 
 ## 🎯 Key Features
 

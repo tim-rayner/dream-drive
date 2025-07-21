@@ -1,4 +1,5 @@
 import { creditPacks } from "@/lib/constants/stripeCreditPacks";
+import { apiRateLimiter, rateLimit } from "@/lib/rateLimit";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,6 +12,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: NextRequest) {
   try {
+    // 🔒 SECURITY: Apply rate limiting
+    const rateLimitResult = rateLimit(req, apiRateLimiter);
+    if (rateLimitResult) {
+      return rateLimitResult;
+    }
+
     // Check if Stripe secret key is configured
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error("❌ STRIPE_SECRET_KEY not configured");

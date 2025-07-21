@@ -1,4 +1,4 @@
-# Environment Setup for DreamDrive AI
+# Environment Setup for DriveDream AI
 
 ## Required Environment Variables
 

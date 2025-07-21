@@ -1,4 +1,5 @@
 import { refundCredit } from "@/lib/actions/refundCredit";
+import { generationRateLimiter, rateLimit } from "@/lib/rateLimit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { validateRevisionRequest } from "@/lib/validateRevision";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
@@ -20,6 +21,12 @@ export async function POST(request: NextRequest) {
   let requestBody: RevisionRequest | null = null;
 
   try {
+    // 🔒 SECURITY: Apply rate limiting
+    const rateLimitResult = rateLimit(request, generationRateLimiter);
+    if (rateLimitResult) {
+      return rateLimitResult;
+    }
+
     // Get authenticated user from secure cookies
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
@@ -89,15 +96,60 @@ export async function POST(request: NextRequest) {
     );
 
     if (!validation.isValid) {
+      console.log("❌ Revision validation failed:", validation.error);
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    console.log("✅ Revision validation passed");
+
+    // 🔒 CRITICAL SECURITY: Ensure user has credits before proceeding
+    const { data: creditData, error: creditError } = await supabase
+      .from("credits")
+      .select("available_credits")
+      .eq("id", user.id)
+      .single();
+
+    if (creditError || !creditData || creditData.available_credits < 1) {
+      console.log("❌ Insufficient credits for revision:", {
+        error: creditError,
+        credits: creditData?.available_credits || 0,
+        userId: user.id,
+      });
       return NextResponse.json(
-        { error: validation.error || "Revision validation failed" },
-        { status: 400 }
+        { error: "Insufficient credits for revision" },
+        { status: 402 }
       );
     }
 
-    const originalGeneration = validation.originalGeneration!;
+    console.log(
+      "✅ User has sufficient credits:",
+      creditData.available_credits
+    );
 
-    console.log("✅ Revision validation passed, starting image generation...");
+    // 🔒 CRITICAL SECURITY: Deduct credit BEFORE processing
+    const { data: updatedCredits, error: deductError } = await supabase
+      .from("credits")
+      .update({
+        available_credits: creditData.available_credits - 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id)
+      .eq("available_credits", creditData.available_credits) // Optimistic locking
+      .select("available_credits")
+      .single();
+
+    if (deductError || !updatedCredits) {
+      console.log("❌ Failed to deduct credit:", deductError);
+      return NextResponse.json(
+        { error: "Failed to process credit deduction" },
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      "✅ Credit deducted successfully:",
+      updatedCredits.available_credits
+    );
 
     // Mark the original generation as having a revision used
     if (!supabaseAdmin) {

@@ -4,6 +4,8 @@ import {
   AutoAwesome as AutoAwesomeIcon,
   History as HistoryIcon,
 } from "@mui/icons-material";
+import ImageNotSupportedIcon from "@mui/icons-material/ImageNotSupported";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
   Alert,
   Box,
@@ -12,11 +14,159 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import { useEffect, useRef, useState } from "react";
-import GenerationResult from "../../../components/GenerationResult";
 import ThemeWrapper from "../../../components/ThemeWrapper";
 import { useAuth } from "../../../context/AuthContext";
 import { type Generation } from "../../../lib/supabase";
+
+function GenerationGalleryItem({ generation }: { generation: Generation }) {
+  const imageUrl = generation.final_image_url || generation.scene_image_url;
+  const hasImage = Boolean(imageUrl);
+  return (
+    <Box
+      sx={{
+        aspectRatio: "1 / 1",
+        width: "100%",
+        borderRadius: 2,
+        overflow: "hidden",
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        boxShadow: hasImage ? "0 2px 8px rgba(139,92,246,0.08)" : "none",
+      }}
+    >
+      {hasImage ? (
+        <img
+          src={imageUrl}
+          alt="Generation preview"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      ) : (
+        <Box sx={{ textAlign: "center", color: "text.secondary" }}>
+          <ImageNotSupportedIcon sx={{ fontSize: 48, mb: 1 }} />
+          <Typography variant="caption" color="text.secondary">
+            No image available
+          </Typography>
+        </Box>
+      )}
+      {/* Overlay info (date, etc.) */}
+      <Box
+        sx={{
+          position: "absolute",
+          left: 0,
+          bottom: 0,
+          width: "100%",
+          bgcolor: "rgba(0,0,0,0.45)",
+          color: "white",
+          px: 1,
+          py: 0.5,
+          fontSize: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>
+          {generation.created_at
+            ? new Date(generation.created_at).toLocaleDateString()
+            : ""}
+        </span>
+        {/* Add more info if needed */}
+      </Box>
+    </Box>
+  );
+}
+
+function GenerationModal({ open, onClose, generation, onRequestRevision }) {
+  if (!generation) return null;
+  const imageUrl = generation.final_image_url || generation.scene_image_url;
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ textAlign: "center", fontWeight: 700 }}>
+        Generation Details
+      </DialogTitle>
+      <DialogContent
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 2,
+        }}
+      >
+        <Box
+          sx={{
+            width: "100%",
+            aspectRatio: "1 / 1",
+            mb: 2,
+            borderRadius: 2,
+            overflow: "hidden",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt="Generation preview"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          ) : (
+            <Box sx={{ textAlign: "center", color: "text.secondary" }}>
+              <ImageNotSupportedIcon sx={{ fontSize: 48, mb: 1 }} />
+              <Typography variant="caption" color="text.secondary">
+                No image available
+              </Typography>
+            </Box>
+          )}
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          Created:{" "}
+          {generation.created_at
+            ? new Date(generation.created_at).toLocaleString()
+            : "Unknown"}
+        </Typography>
+        {generation.place_description && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          >
+            <LocationOnIcon fontSize="small" sx={{ mr: 0.5 }} />
+            {generation.place_description}
+          </Typography>
+        )}
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ mt: 2, minWidth: 180, minHeight: 44, fontWeight: 600 }}
+          onClick={() => onRequestRevision(generation)}
+        >
+          Request Revision
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function GenerationsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -24,45 +174,46 @@ export default function GenerationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
+  const [selectedGeneration, setSelectedGeneration] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchGenerations = async () => {
+  const fetchGenerations = async (pageToFetch = 1, append = false) => {
     if (!user) return;
-
-    console.log("🔍 Frontend: Fetching generations for user:", user.id);
-
     try {
-      setLoading(true);
+      if (pageToFetch === 1) setLoading(true);
+      else setLoadingMore(true);
       setError(null);
-
-      const response = await fetch(`/api/generations`);
-      console.log("📡 Frontend: API response status:", response.status);
-
-      const result = await response.json();
-      console.log("📊 Frontend: API result:", result);
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch generations");
-      }
-
-      console.log(
-        "✅ Frontend: Setting generations:",
-        result.generations?.length || 0
+      const response = await fetch(
+        `/api/generations?page=${pageToFetch}&limit=10`
       );
-      setGenerations(result.generations || []);
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error || "Failed to fetch generations");
+      if (append) {
+        setGenerations((prev) => [...prev, ...(result.generations || [])]);
+      } else {
+        setGenerations(result.generations || []);
+      }
+      setHasMore(result.generations && result.generations.length === 10);
+      setPage(pageToFetch);
     } catch (error) {
-      console.error("❌ Frontend: Error fetching generations:", error);
       setError(
         error instanceof Error ? error.message : "Failed to fetch generations"
       );
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
     if (!authLoading && user) {
-      fetchGenerations();
+      fetchGenerations(1, false);
     }
+    // eslint-disable-next-line
   }, [authLoading, user]);
 
   const handleRevisionComplete = (newGeneration: Generation) => {
@@ -193,16 +344,57 @@ export default function GenerationsPage() {
                 </Typography>
               </Box>
             ) : (
-              <Stack spacing={4}>
-                {generations.map((generation) => (
-                  <GenerationResult
-                    key={generation.id}
-                    generation={generation}
-                    onRevisionComplete={handleRevisionComplete}
-                    onScrollToTop={scrollToTop}
-                  />
-                ))}
-              </Stack>
+              <>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "repeat(2, 1fr)",
+                      sm: "repeat(3, 1fr)",
+                      md: "repeat(4, 1fr)",
+                      lg: "repeat(5, 1fr)",
+                    },
+                    gap: { xs: 2, sm: 3 },
+                    mt: 2,
+                  }}
+                >
+                  {generations.map((generation) => (
+                    <Box
+                      key={generation.id}
+                      onClick={() => {
+                        setSelectedGeneration(generation);
+                        setModalOpen(true);
+                      }}
+                      sx={{ cursor: "pointer" }}
+                    >
+                      <GenerationGalleryItem generation={generation} />
+                    </Box>
+                  ))}
+                </Box>
+                {hasMore && (
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", mt: 4 }}
+                  >
+                    <Button
+                      variant="outlined"
+                      onClick={() => fetchGenerations(page + 1, true)}
+                      disabled={loadingMore}
+                      sx={{ minWidth: 160, minHeight: 44, fontWeight: 600 }}
+                    >
+                      {loadingMore ? "Loading..." : "Load More"}
+                    </Button>
+                  </Box>
+                )}
+                <GenerationModal
+                  open={modalOpen}
+                  onClose={() => setModalOpen(false)}
+                  generation={selectedGeneration}
+                  onRequestRevision={(gen) => {
+                    // TODO: Implement revision logic/modal as before
+                    alert("Request revision for generation " + gen.id);
+                  }}
+                />
+              </>
             )}
           </Stack>
         </Container>

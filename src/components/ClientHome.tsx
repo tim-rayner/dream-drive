@@ -36,6 +36,7 @@ export default function ClientHome() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            px: 2,
           }}
         >
           <Typography variant="h6" color="text.secondary">
@@ -53,40 +54,75 @@ export default function ClientHome() {
           minHeight: "100vh",
           background:
             "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
-          py: 4,
+          py: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 1, sm: 2 },
         }}
       >
-        <Stack spacing={3} alignItems="center" sx={{ mb: 6 }}>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Typography
-              variant="h1"
-              component="h1"
-              gutterBottom
-              align="center"
-              sx={{
-                background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontWeight: 700,
-              }}
+        <Stack
+          spacing={{ xs: 2, sm: 3 }}
+          alignItems="center"
+          sx={{ mb: { xs: 3, sm: 4, md: 6 } }}
+        >
+          <Box
+            sx={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              mx: "auto",
+            }}
+          >
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={{ xs: 1, sm: 2 }}
+              alignItems="center"
+              justifyContent="center"
+              sx={{ width: "auto" }}
             >
-              Dream Drive AI Studio
-            </Typography>
-            <AutoAwesomeIcon
-              sx={{
-                fontSize: 48,
-                color: "primary.main",
-                filter: "drop-shadow(0 0 8px rgba(139, 92, 246, 0.5))",
-              }}
-            />
-          </Stack>
+              <Typography
+                variant="h1"
+                component="h1"
+                gutterBottom
+                align="center"
+                sx={{
+                  background:
+                    "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 700,
+                  fontSize: {
+                    xs: "2rem",
+                    sm: "2.5rem",
+                    md: "3rem",
+                    lg: "3.5rem",
+                  },
+                  lineHeight: 1.2,
+                  wordBreak: "break-word",
+                }}
+              >
+                DriveDream AI Studio
+              </Typography>
+              <AutoAwesomeIcon
+                sx={{
+                  fontSize: { xs: 32, sm: 40, md: 48 },
+                  color: "primary.main",
+                  filter: "drop-shadow(0 0 8px rgba(139, 92, 246, 0.5))",
+                  flexShrink: 0,
+                }}
+              />
+            </Stack>
+          </Box>
 
           <Typography
             variant="h5"
             color="text.secondary"
             align="center"
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              fontSize: { xs: "1.1rem", sm: "1.25rem", md: "1.5rem" },
+              px: { xs: 2, sm: 0 },
+              lineHeight: 1.4,
+            }}
           >
             Upload your car photo and place it anywhere in the world
           </Typography>
@@ -94,11 +130,25 @@ export default function ClientHome() {
           <Divider sx={{ width: "100%", maxWidth: 800 }} />
         </Stack>
 
-        <Container maxWidth="xl">
+        <Container maxWidth="md" sx={{ px: { xs: 1, sm: 2 }, mx: "auto" }}>
           {!user ? (
             // Show login call-to-action for unauthenticated users
-            <Box sx={{ textAlign: "center", py: 8 }}>
-              <Stack spacing={4} alignItems="center" maxWidth={800} mx="auto">
+            <Box
+              sx={{
+                textAlign: "center",
+                py: { xs: 4, sm: 6, md: 8 },
+                pt: 0,
+                mx: "auto",
+                maxWidth: 600,
+              }}
+            >
+              <Stack
+                spacing={{ xs: 3, sm: 4 }}
+                alignItems="center"
+                maxWidth={600}
+                mx="auto"
+                sx={{ width: "100%" }}
+              >
                 {/* Promotional Banner */}
                 <PromotionalBanner />
 
@@ -107,14 +157,25 @@ export default function ClientHome() {
                   component="h2"
                   fontWeight={600}
                   color="text.primary"
+                  sx={{
+                    fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                    px: { xs: 2, sm: 0 },
+                    textAlign: "center",
+                  }}
                 >
-                  Ready to Create Your Dream Drive?
+                  Ready to Create Your DriveDream?
                 </Typography>
 
                 <Typography
                   variant="body1"
                   color="text.secondary"
-                  sx={{ mb: 4 }}
+                  sx={{
+                    mb: 4,
+                    px: { xs: 2, sm: 0 },
+                    fontSize: { xs: "0.95rem", sm: "1rem" },
+                    lineHeight: 1.6,
+                    textAlign: "center",
+                  }}
                 >
                   Sign in to start generating AI-powered car scenes. Upload your
                   car photo, choose any location in the world, and watch AI
@@ -127,9 +188,15 @@ export default function ClientHome() {
                 <Box
                   sx={{
                     display: "grid",
-                    gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
-                    gap: 3,
-                    mt: 6,
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(2, 1fr)",
+                      md: "repeat(3, 1fr)",
+                    },
+                    gap: { xs: 2, sm: 3 },
+                    mt: { xs: 4, sm: 6 },
+                    width: "100%",
+                    justifyItems: "center",
                   }}
                 >
                   <Card
@@ -138,16 +205,36 @@ export default function ClientHome() {
                       backdropFilter: "blur(10px)",
                       border: "1px solid rgba(255, 255, 255, 0.1)",
                       height: "100%",
+                      minHeight: { xs: 200, sm: 220 },
                     }}
                   >
-                    <CardContent sx={{ textAlign: "center", py: 3 }}>
+                    <CardContent
+                      sx={{
+                        textAlign: "center",
+                        py: { xs: 2, sm: 3 },
+                        px: { xs: 2, sm: 3 },
+                      }}
+                    >
                       <PhotoCameraIcon
-                        sx={{ fontSize: 48, color: "primary.main", mb: 2 }}
+                        sx={{
+                          fontSize: { xs: 36, sm: 40, md: 48 },
+                          color: "primary.main",
+                          mb: 2,
+                        }}
                       />
-                      <Typography variant="h6" component="h3" gutterBottom>
+                      <Typography
+                        variant="h6"
+                        component="h3"
+                        gutterBottom
+                        sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                      >
                         Upload Your Car
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                      >
                         Upload a photo of your car and let AI work its magic
                       </Typography>
                     </CardContent>
@@ -159,16 +246,36 @@ export default function ClientHome() {
                       backdropFilter: "blur(10px)",
                       border: "1px solid rgba(255, 255, 255, 0.1)",
                       height: "100%",
+                      minHeight: { xs: 200, sm: 220 },
                     }}
                   >
-                    <CardContent sx={{ textAlign: "center", py: 3 }}>
+                    <CardContent
+                      sx={{
+                        textAlign: "center",
+                        py: { xs: 2, sm: 3 },
+                        px: { xs: 2, sm: 3 },
+                      }}
+                    >
                       <MapIcon
-                        sx={{ fontSize: 48, color: "primary.main", mb: 2 }}
+                        sx={{
+                          fontSize: { xs: 36, sm: 40, md: 48 },
+                          color: "primary.main",
+                          mb: 2,
+                        }}
                       />
-                      <Typography variant="h6" component="h3" gutterBottom>
+                      <Typography
+                        variant="h6"
+                        component="h3"
+                        gutterBottom
+                        sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                      >
                         Choose Location
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                      >
                         Pick any location in the world using our interactive map
                       </Typography>
                     </CardContent>
@@ -180,16 +287,37 @@ export default function ClientHome() {
                       backdropFilter: "blur(10px)",
                       border: "1px solid rgba(255, 255, 255, 0.1)",
                       height: "100%",
+                      minHeight: { xs: 200, sm: 220 },
+                      gridColumn: { xs: "1", sm: "span 2", md: "span 1" },
                     }}
                   >
-                    <CardContent sx={{ textAlign: "center", py: 3 }}>
+                    <CardContent
+                      sx={{
+                        textAlign: "center",
+                        py: { xs: 2, sm: 3 },
+                        px: { xs: 2, sm: 3 },
+                      }}
+                    >
                       <AutoAwesomeIcon2
-                        sx={{ fontSize: 48, color: "primary.main", mb: 2 }}
+                        sx={{
+                          fontSize: { xs: 36, sm: 40, md: 48 },
+                          color: "primary.main",
+                          mb: 2,
+                        }}
                       />
-                      <Typography variant="h6" component="h3" gutterBottom>
+                      <Typography
+                        variant="h6"
+                        component="h3"
+                        gutterBottom
+                        sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                      >
                         Generate AI Scene
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                      >
                         Watch as AI seamlessly places your car in the chosen
                         location
                       </Typography>

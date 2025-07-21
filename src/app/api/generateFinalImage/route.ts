@@ -1,3 +1,4 @@
+import { generationRateLimiter, rateLimit } from "@/lib/rateLimit";
 import { supabaseAdmin, type CreateGenerationData } from "@/lib/supabase";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
@@ -378,6 +379,12 @@ async function generateFinalImage(
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 SECURITY: Apply rate limiting
+    const rateLimitResult = rateLimit(request, generationRateLimiter);
+    if (rateLimitResult) {
+      return rateLimitResult;
+    }
+
     // Get authenticated user from secure cookies
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
@@ -390,6 +397,88 @@ export async function POST(request: NextRequest) {
       console.log("❌ Authentication failed:", authError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // 🔒 CRITICAL SECURITY: Validate and deduct credits BEFORE any processing
+    console.log("🔒 Validating credits for user:", user.id);
+    const { data: creditData, error: creditError } = await supabase
+      .from("credits")
+      .select("available_credits")
+      .eq("id", user.id)
+      .single();
+
+    if (creditError) {
+      console.log("❌ Error fetching credits:", creditError);
+      // If no credits row exists, create one with 0 credits
+      if (creditError.code === "PGRST116") {
+        const { data: newCreditData, error: insertError } = await supabase
+          .from("credits")
+          .insert({ id: user.id, available_credits: 0 })
+          .select("available_credits")
+          .single();
+
+        if (insertError) {
+          console.log("❌ Failed to initialize credits:", insertError);
+          return NextResponse.json(
+            { error: "Failed to initialize credits" },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json(
+          { error: "Insufficient credits: 0 available" },
+          { status: 402 }
+        );
+      }
+      return NextResponse.json(
+        { error: "Failed to fetch credits" },
+        { status: 500 }
+      );
+    }
+
+    if (!creditData || creditData.available_credits < 1) {
+      console.log("❌ Insufficient credits:", {
+        available: creditData?.available_credits || 0,
+        userId: user.id,
+      });
+      return NextResponse.json(
+        {
+          error: `Insufficient credits: ${
+            creditData?.available_credits || 0
+          } available`,
+        },
+        { status: 402 }
+      );
+    }
+
+    console.log(
+      "✅ User has sufficient credits:",
+      creditData.available_credits
+    );
+
+    // 🔒 CRITICAL SECURITY: Deduct credit BEFORE any image generation
+    const { data: updatedCredits, error: deductError } = await supabase
+      .from("credits")
+      .update({
+        available_credits: creditData.available_credits - 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id)
+      .eq("available_credits", creditData.available_credits) // Optimistic locking
+      .select("available_credits")
+      .single();
+
+    if (deductError || !updatedCredits) {
+      console.log("❌ Failed to deduct credit:", deductError);
+      return NextResponse.json(
+        { error: "Failed to process credit deduction" },
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      "✅ Credit deducted successfully:",
+      updatedCredits.available_credits
+    );
 
     const body: GenerateFinalImageRequest = await request.json();
 
@@ -550,6 +639,7 @@ export async function POST(request: NextRequest) {
       sceneDescription,
       timeOfDay: body.timeOfDay,
       generationId: savedGenerationId,
+      creditsRemaining: updatedCredits.available_credits,
     });
   } catch (error) {
     console.error("Error in generateFinalImage:", error);

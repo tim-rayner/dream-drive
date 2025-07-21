@@ -1,6 +1,6 @@
-# 🔐 SECURE SUPABASE AUTH SETUP FOR DREAMDRIVE
+# 🔐 SECURE SUPABASE AUTH SETUP FOR DRIVEDREAM
 
-This document outlines the secure authentication implementation using HTTPOnly cookies for DreamDrive.
+This document outlines the secure authentication implementation using HTTPOnly cookies for DriveDream.
 
 ## ✅ Implementation Complete
 
@@ -310,7 +310,7 @@ const {
 
 ## 🎉 Migration Complete
 
-Your DreamDrive application now uses secure, cookie-based Supabase authentication with:
+Your DriveDream application now uses secure, cookie-based Supabase authentication with:
 
 - ✅ HTTPOnly cookie storage
 - ✅ Server-side validation

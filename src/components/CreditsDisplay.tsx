@@ -51,8 +51,8 @@ export default function CreditsDisplay({
           },
           textTransform: "none",
           fontWeight: 600,
-          px: 2,
-          py: 1,
+          px: { xs: 1.5, sm: 2 },
+          py: { xs: 0.75, sm: 1 },
           borderRadius: 2,
           fontSize:
             size === "small"
@@ -61,13 +61,15 @@ export default function CreditsDisplay({
               ? "1.125rem"
               : "1rem",
           transition: "all 0.3s ease",
+          minHeight: "44px", // Better touch target
+          minWidth: "44px", // Better touch target
         }}
       >
         {loading ? (
           "..."
         ) : (
           <>
-            Credits:{" "}
+            <span style={{ display: "none" }}>Credits: </span>
             <motion.span
               style={{
                 display: "inline-block",

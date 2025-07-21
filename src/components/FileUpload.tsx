@@ -1,7 +1,12 @@
 "use client";
 
 import {
-  CheckCircle as CheckCircleIcon,
+  getRecommendedOptions,
+  isHEICFile,
+  isImageFile,
+  useImageProcessor,
+} from "@/lib/hooks/useImageProcessor";
+import {
   Close as CloseIcon,
   CloudUpload as CloudUploadIcon,
   Error as ErrorIcon,
@@ -69,6 +74,7 @@ interface FileUploadProps {
   acceptedTypes?: string[];
   className?: string;
   uploadedFile?: File | null;
+  enableProcessing?: boolean; // Enable automatic image processing
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -80,9 +86,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
     "image/png",
     "image/webp",
     "image/gif",
+    "image/heic", // Add HEIC support
   ],
   className,
   uploadedFile: externalUploadedFile,
+  enableProcessing = true, // Enable by default
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(
@@ -90,7 +98,20 @@ const FileUpload: React.FC<FileUploadProps> = ({
   );
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [processingInfo, setProcessingInfo] = useState<{
+    originalSize: number;
+    processedSize: number;
+    compressionRatio: number;
+    warnings: string[];
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image processor hook
+  const {
+    processImage,
+    isProcessing,
+    error: processingError,
+  } = useImageProcessor();
 
   // Update selectedFile when externalUploadedFile changes
   useEffect(() => {
@@ -99,24 +120,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const validateFile = useCallback(
     (file: File): string | null => {
-      // Check file type
-      if (!acceptedTypes.includes(file.type)) {
-        return "Please select a valid image file (JPEG, PNG, WebP, or GIF)";
+      // Check if it's an image file
+      if (!isImageFile(file)) {
+        return "Please select a valid image file";
       }
 
-      // Check file size
+      // Check file size (allow larger files if processing is enabled)
       const fileSizeInMB = file.size / (1024 * 1024);
-      if (fileSizeInMB > maxFileSize) {
-        return `File size must be less than ${maxFileSize}MB`;
+      const effectiveMaxSize = enableProcessing ? maxFileSize * 2 : maxFileSize; // Allow 2x size if processing enabled
+      if (fileSizeInMB > effectiveMaxSize) {
+        return `File size must be less than ${effectiveMaxSize}MB`;
       }
 
       return null;
     },
-    [acceptedTypes, maxFileSize]
+    [acceptedTypes, maxFileSize, enableProcessing]
   );
 
   const handleFileSelect = useCallback(
-    (file: File) => {
+    async (file: File) => {
       const validationError = validateFile(file);
       if (validationError) {
         setError(validationError);
@@ -127,14 +149,56 @@ const FileUpload: React.FC<FileUploadProps> = ({
       setError(null);
       setSelectedFile(file);
       setIsUploading(true);
+      setProcessingInfo(null);
 
-      // Simulate upload process
-      setTimeout(() => {
+      try {
+        let processedFile = file;
+
+        // Process image if enabled and needed
+        if (
+          enableProcessing &&
+          (file.size > 2 * 1024 * 1024 || isHEICFile(file))
+        ) {
+          console.log("🔄 Processing image:", file.name);
+
+          const options = getRecommendedOptions(file);
+          const result = await processImage(file, options);
+
+          processedFile = result.blob as File;
+          setProcessingInfo({
+            originalSize: result.originalSize,
+            processedSize: result.processedSize,
+            compressionRatio: result.compressionRatio,
+            warnings: result.warnings,
+          });
+
+          console.log("✅ Image processed:", {
+            originalSize:
+              Math.round((result.originalSize / 1024 / 1024) * 100) / 100 +
+              "MB",
+            processedSize:
+              Math.round((result.processedSize / 1024 / 1024) * 100) / 100 +
+              "MB",
+            compressionRatio: Math.round(result.compressionRatio * 100) + "%",
+            warnings: result.warnings,
+          });
+        }
+
+        // Simulate upload process
+        setTimeout(() => {
+          setIsUploading(false);
+          onFileSelect(processedFile);
+        }, 500);
+      } catch (err) {
+        console.error("❌ File processing failed:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to process image"
+        );
         setIsUploading(false);
-        onFileSelect(file);
-      }, 1000);
+        setSelectedFile(null);
+      }
     },
-    [validateFile, onFileSelect]
+    [validateFile, onFileSelect, enableProcessing, processImage]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -177,6 +241,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const handleRemoveFile = useCallback(() => {
     setSelectedFile(null);
     setError(null);
+    setProcessingInfo(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -199,27 +264,42 @@ const FileUpload: React.FC<FileUploadProps> = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={handleClick}
-          elevation={0}
         >
           <CloudUploadIcon
             sx={{
-              fontSize: 48,
-              color: "primary.main",
+              fontSize: { xs: "2rem", sm: "3rem" },
+              color: "text.secondary",
               mb: 2,
             }}
           />
-          <Typography variant="h6" component="div" gutterBottom>
-            Drop your photo here
+          <Typography
+            variant="h6"
+            component="h3"
+            sx={{
+              fontSize: { xs: "1.125rem", sm: "1.25rem" },
+              fontWeight: 600,
+              mb: 1,
+              textAlign: "center",
+            }}
+          >
+            Upload Your Car Photo
           </Typography>
-          <Typography variant="body2" color="text.secondary" align="center">
-            or click to browse
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: { xs: "0.875rem", sm: "1rem" },
+              textAlign: "center",
+              mb: 2,
+            }}
+          >
+            Drag and drop your image here, or click to browse
           </Typography>
           <Box
             sx={{
-              mt: 2,
               display: "flex",
-              gap: 1,
               flexWrap: "wrap",
+              gap: 1,
               justifyContent: "center",
             }}
           >
@@ -227,59 +307,94 @@ const FileUpload: React.FC<FileUploadProps> = ({
               label="JPEG"
               size="small"
               variant="outlined"
-              sx={{ borderColor: "primary.main", color: "primary.main" }}
+              sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
             />
             <Chip
               label="PNG"
               size="small"
               variant="outlined"
-              sx={{ borderColor: "primary.main", color: "primary.main" }}
+              sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+            />
+            <Chip
+              label="HEIC"
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
             />
             <Chip
               label="WebP"
               size="small"
               variant="outlined"
-              sx={{ borderColor: "primary.main", color: "primary.main" }}
-            />
-            <Chip
-              label="GIF"
-              size="small"
-              variant="outlined"
-              sx={{ borderColor: "primary.main", color: "primary.main" }}
+              sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
             />
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-            Max file size: {maxFileSize}MB
-          </Typography>
+          {enableProcessing && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                textAlign: "center",
+                mt: 1,
+                opacity: 0.8,
+              }}
+            >
+              Large images will be automatically compressed
+            </Typography>
+          )}
         </UploadArea>
       ) : (
         <Fade in={true}>
           <FilePreview>
             <PreviewImage
               src={URL.createObjectURL(selectedFile)}
-              alt="Preview"
+              alt="Selected file preview"
             />
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" noWrap>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  mb: 0.5,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {selectedFile.name}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+              >
+                {Math.round((selectedFile.size / 1024 / 1024) * 100) / 100} MB
+                {processingInfo && (
+                  <>
+                    {" → "}
+                    {Math.round(
+                      (processingInfo.processedSize / 1024 / 1024) * 100
+                    ) / 100}{" "}
+                    MB
+                    {" ("}
+                    {Math.round(processingInfo.compressionRatio * 100)}% smaller
+                    {")"}
+                  </>
+                )}
               </Typography>
-              {isUploading && (
-                <Box sx={{ mt: 1 }}>
-                  <LinearProgress
-                    variant="indeterminate"
-                    sx={{
-                      height: 4,
-                      borderRadius: 2,
-                      backgroundColor: "rgba(139, 92, 246, 0.2)",
-                      "& .MuiLinearProgress-bar": {
-                        backgroundColor: "primary.main",
-                      },
-                    }}
-                  />
-                </Box>
+              {processingInfo && processingInfo.warnings.length > 0 && (
+                <Typography
+                  variant="caption"
+                  color="warning.main"
+                  sx={{
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    display: "block",
+                    mt: 0.5,
+                  }}
+                >
+                  {processingInfo.warnings[0]}
+                </Typography>
               )}
             </Box>
             <IconButton
@@ -287,9 +402,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
               size="small"
               sx={{
                 color: "text.secondary",
-                "&:hover": {
-                  color: "error.main",
-                },
+                "&:hover": { color: "error.main" },
+                minWidth: "44px",
+                minHeight: "44px",
               }}
             >
               <CloseIcon />
@@ -298,20 +413,45 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </Fade>
       )}
 
-      {error && (
+      {/* Processing Progress */}
+      {(isUploading || isProcessing) && (
+        <Box sx={{ mt: 2 }}>
+          <LinearProgress
+            sx={{
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: "rgba(139, 92, 246, 0.2)",
+              "& .MuiLinearProgress-bar": {
+                backgroundColor: "primary.main",
+              },
+            }}
+          />
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              mt: 1,
+              display: "block",
+              textAlign: "center",
+            }}
+          >
+            {isProcessing ? "Processing image..." : "Uploading..."}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Error Display */}
+      {(error || processingError) && (
         <Alert
           severity="error"
           icon={<ErrorIcon />}
-          sx={{ mt: 2 }}
-          onClose={() => setError(null)}
+          sx={{
+            mt: 2,
+            fontSize: { xs: "0.875rem", sm: "1rem" },
+          }}
         >
-          {error}
-        </Alert>
-      )}
-
-      {selectedFile && !isUploading && !error && (
-        <Alert severity="success" icon={<CheckCircleIcon />} sx={{ mt: 2 }}>
-          File uploaded successfully!
+          {error || processingError}
         </Alert>
       )}
     </Box>

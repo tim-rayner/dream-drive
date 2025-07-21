@@ -114,6 +114,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           mapTypeControl: false,
           zoomControl: true,
           scaleControl: true,
+          gestureHandling: "cooperative", // Better mobile interaction
         });
 
         // Initialize Street View panorama
@@ -693,6 +694,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
                 outline: "none",
                 transition: "all 0.2s ease",
+                minHeight: "44px", // Better touch target
               }}
               onBlur={() => {
                 // Delay hiding autocomplete to allow for clicks
@@ -749,6 +751,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                           ? "1px solid rgba(0, 0, 0, 0.06)"
                           : "none",
                       transition: "background-color 0.2s ease",
+                      minHeight: "44px", // Better touch target
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor =
@@ -813,7 +819,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           left: "10px",
           zIndex: 1000,
           display: "none",
-          padding: "10px 16px",
+          padding: "12px 16px",
           backgroundColor: "rgba(255, 255, 255, 0.95)",
           border: "1px solid rgba(0, 0, 0, 0.12)",
           borderRadius: "8px",
@@ -823,6 +829,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           transition: "all 0.2s ease",
           backdropFilter: "blur(8px)",
+          minHeight: "44px", // Better touch target
+          minWidth: "44px", // Better touch target
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
@@ -846,7 +854,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           right: "10px",
           zIndex: 1000,
           display: "none",
-          padding: "10px 16px",
+          padding: "12px 16px",
           backgroundColor: "rgba(76, 175, 80, 0.95)",
           color: "white",
           border: "none",
@@ -857,6 +865,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
           transition: "all 0.2s ease",
           backdropFilter: "blur(8px)",
+          minHeight: "44px", // Better touch target
+          minWidth: "44px", // Better touch target
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.backgroundColor = "rgba(76, 175, 80, 1)";
@@ -884,6 +894,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             borderRadius: "8px",
             fontSize: "14px",
             fontWeight: "500",
+            textAlign: "center",
+            minWidth: "120px",
           }}
         >
           Loading Street View...

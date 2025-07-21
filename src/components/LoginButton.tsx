@@ -47,7 +47,7 @@ export default function LoginButton() {
         >
           {isOfferExpired
             ? "Sign in with Google"
-            : "🚀 Sign in with Google & Get 10 Free Credits"}
+            : "🚀 Sign in with Google & Get 5 Free Credits"}
         </Button>
         {!isOfferExpired && (
           <Typography

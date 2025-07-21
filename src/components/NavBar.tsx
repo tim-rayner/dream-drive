@@ -62,13 +62,17 @@ export default function NavBar() {
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 fontWeight: 700,
-                fontSize: "1.25rem",
+                fontSize: { xs: "1rem", sm: "1.25rem" },
               }}
             >
-              DreamDrive
+              DriveDream
             </Typography>
             <Box>
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              >
                 Loading...
               </Typography>
             </Box>
@@ -105,7 +109,7 @@ export default function NavBar() {
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 fontWeight: 700,
-                fontSize: "1.25rem",
+                fontSize: { xs: "1rem", sm: "1.25rem" },
                 color: "white",
                 cursor: "pointer",
                 "&:hover": {
@@ -115,7 +119,7 @@ export default function NavBar() {
                 },
               }}
             >
-              DreamDrive
+              DriveDream
             </Typography>
           </Stack>
 
@@ -133,28 +137,35 @@ export default function NavBar() {
                     background:
                       "linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)",
                   },
-                  px: 3,
-                  py: 1,
+                  px: { xs: 2, sm: 3 },
+                  py: { xs: 0.75, sm: 1 },
                   borderRadius: 2,
                   textTransform: "none",
                   fontWeight: 600,
                   color: "white",
                   boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  minHeight: "44px", // Better touch target
                 }}
               >
                 Sign in with Google
               </Button>
             ) : (
-              <Stack direction="row" spacing={2} alignItems="center">
+              <Stack
+                direction="row"
+                spacing={{ xs: 1, sm: 2 }}
+                alignItems="center"
+              >
                 {/* Credits Display */}
                 <CreditsDisplay variant="button" size="medium" />
 
                 <Typography
                   variant="body2"
                   sx={{
-                    display: { xs: "none", sm: "block" },
+                    display: { xs: "none", md: "block" },
                     color: "rgba(255, 255, 255, 0.9)",
                     fontWeight: 500,
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
                   }}
                 >
                   {profile?.full_name || user.email}
@@ -165,6 +176,8 @@ export default function NavBar() {
                   sx={{
                     p: 0,
                     color: "white",
+                    minWidth: "44px",
+                    minHeight: "44px",
                     "&:hover": {
                       transform: "scale(1.05)",
                       transition: "transform 0.2s ease",
@@ -198,6 +211,7 @@ export default function NavBar() {
                       border: "1px solid rgba(255, 255, 255, 0.15)",
                       mt: 1,
                       color: "white",
+                      minWidth: "200px",
                     },
                   }}
                 >
@@ -208,13 +222,18 @@ export default function NavBar() {
                     }}
                     sx={{
                       color: "white",
+                      py: { xs: 1.5, sm: 2 },
                       "&:hover": {
                         backgroundColor: "rgba(255, 255, 255, 0.1)",
                       },
                     }}
                   >
-                    <HistoryIcon sx={{ mr: 1, fontSize: 20 }} />
-                    History
+                    <HistoryIcon sx={{ mr: 1, fontSize: { xs: 18, sm: 20 } }} />
+                    <Typography
+                      sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                    >
+                      History
+                    </Typography>
                   </MenuItem>
                   <MenuItem
                     onClick={() => {
@@ -223,24 +242,34 @@ export default function NavBar() {
                     }}
                     sx={{
                       color: "white",
+                      py: { xs: 1.5, sm: 2 },
                       "&:hover": {
                         backgroundColor: "rgba(255, 255, 255, 0.1)",
                       },
                     }}
                   >
-                    Settings
+                    <Typography
+                      sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                    >
+                      Settings
+                    </Typography>
                   </MenuItem>
                   <MenuItem
                     onClick={handleLogout}
                     sx={{
                       color: "white",
+                      py: { xs: 1.5, sm: 2 },
                       "&:hover": {
                         backgroundColor: "rgba(255, 255, 255, 0.1)",
                       },
                     }}
                   >
-                    <Logout sx={{ mr: 1, fontSize: 20 }} />
-                    Sign out
+                    <Logout sx={{ mr: 1, fontSize: { xs: 18, sm: 20 } }} />
+                    <Typography
+                      sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                    >
+                      Sign out
+                    </Typography>
                   </MenuItem>
                 </Menu>
               </Stack>

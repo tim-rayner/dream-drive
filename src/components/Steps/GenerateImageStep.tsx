@@ -296,7 +296,12 @@ export default function GenerateImageStep({
       }}
     >
       <CardContent
-        sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}
+        sx={{
+          p: { xs: 2, sm: 3 },
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
         <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
           <Box
@@ -304,8 +309,8 @@ export default function GenerateImageStep({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 40,
-              height: 40,
+              width: { xs: 32, sm: 40 },
+              height: { xs: 32, sm: 40 },
               borderRadius: "50%",
               backgroundColor: isMissing ? "grey.100" : "primary.main",
               color: isMissing ? "text.secondary" : "white",
@@ -318,6 +323,7 @@ export default function GenerateImageStep({
             variant="h6"
             fontWeight={600}
             color={isMissing ? "text.secondary" : "text.primary"}
+            sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
           >
             {title}
           </Typography>
@@ -326,7 +332,7 @@ export default function GenerateImageStep({
               label={`Step ${stepNumber}`}
               color="primary"
               size="small"
-              sx={{ ml: 1 }}
+              sx={{ ml: 1, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
             />
           )}
           {!isMissing && (
@@ -338,6 +344,7 @@ export default function GenerateImageStep({
                 ml: "auto",
                 backgroundColor: "success.main",
                 color: "white",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
               }}
             />
           )}
@@ -354,7 +361,7 @@ export default function GenerateImageStep({
               border: "2px dashed",
               borderColor: "divider",
               borderRadius: "8px",
-              p: 4,
+              p: { xs: 2, sm: 4 },
               backgroundColor: "grey.50",
             }}
           >
@@ -363,8 +370,8 @@ export default function GenerateImageStep({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 60,
-                height: 60,
+                width: { xs: 48, sm: 60 },
+                height: { xs: 48, sm: 60 },
                 borderRadius: "50%",
                 backgroundColor: "grey.200",
                 color: "text.secondary",
@@ -373,7 +380,12 @@ export default function GenerateImageStep({
             >
               {icon}
             </Box>
-            <Typography variant="body2" color="text.secondary" align="center">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              align="center"
+              sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+            >
               No image selected
             </Typography>
           </Box>
@@ -406,7 +418,11 @@ export default function GenerateImageStep({
 
   const TimeOfDayToggle = () => (
     <Box sx={{ mb: 3 }}>
-      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+      <Typography
+        variant="h6"
+        fontWeight={600}
+        sx={{ mb: 2, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}
+      >
         Time of Day
       </Typography>
       <ToggleButtonGroup
@@ -421,12 +437,13 @@ export default function GenerateImageStep({
         sx={{
           "& .MuiToggleButton-root": {
             borderRadius: "12px",
-            px: 3,
-            py: 1.5,
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1, sm: 1.5 },
             textTransform: "none",
             fontWeight: 600,
             border: "2px solid",
             borderColor: "divider",
+            fontSize: { xs: "0.875rem", sm: "1rem" },
             "&.Mui-selected": {
               backgroundColor: "primary.main",
               color: "white",
@@ -442,19 +459,19 @@ export default function GenerateImageStep({
         }}
       >
         <ToggleButton value="sunrise" aria-label="sunrise">
-          <SunriseIcon sx={{ mr: 1 }} />
+          <SunriseIcon sx={{ mr: 1, fontSize: { xs: 18, sm: 20 } }} />
           Sunrise
         </ToggleButton>
         <ToggleButton value="afternoon" aria-label="afternoon">
-          <AfternoonIcon sx={{ mr: 1 }} />
+          <AfternoonIcon sx={{ mr: 1, fontSize: { xs: 18, sm: 20 } }} />
           Afternoon
         </ToggleButton>
         <ToggleButton value="dusk" aria-label="dusk">
-          <DuskIcon sx={{ mr: 1 }} />
+          <DuskIcon sx={{ mr: 1, fontSize: { xs: 18, sm: 20 } }} />
           Dusk
         </ToggleButton>
         <ToggleButton value="night" aria-label="night">
-          <NightIcon sx={{ mr: 1 }} />
+          <NightIcon sx={{ mr: 1, fontSize: { xs: 18, sm: 20 } }} />
           Night
         </ToggleButton>
       </ToggleButtonGroup>
@@ -469,13 +486,23 @@ export default function GenerateImageStep({
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", width: "100%" }}>
-      <Stack spacing={4}>
+      <Stack spacing={{ xs: 3, sm: 4 }}>
         {/* Header */}
-        <Box sx={{ textAlign: "center" }}>
-          <Typography variant="h4" component="h2" fontWeight={600} gutterBottom>
+        <Box sx={{ textAlign: "center", px: { xs: 2, sm: 0 } }}>
+          <Typography
+            variant="h4"
+            component="h2"
+            fontWeight={600}
+            gutterBottom
+            sx={{ fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" } }}
+          >
             AI Scene Generation
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ fontSize: { xs: "0.95rem", sm: "1rem" }, lineHeight: 1.6 }}
+          >
             Upload your car photo, select a location, choose time of day, and
             let AI create your dream scene
           </Typography>
@@ -501,7 +528,11 @@ export default function GenerateImageStep({
 
         {/* Image Previews */}
         <Box>
-          <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
+          <Typography
+            variant="h5"
+            fontWeight={600}
+            sx={{ mb: 3, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
+          >
             Your Inputs
           </Typography>
 
@@ -531,13 +562,21 @@ export default function GenerateImageStep({
         <Box>
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              <Typography variant="body2">{error}</Typography>
+              <Typography
+                variant="body2"
+                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              >
+                {error}
+              </Typography>
             </Alert>
           )}
 
           {creditError && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              <Typography variant="body2">
+              <Typography
+                variant="body2"
+                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              >
                 💰 {creditError} - Please purchase more credits to continue.
               </Typography>
             </Alert>
@@ -545,20 +584,29 @@ export default function GenerateImageStep({
 
           {isCarImageMissing || isSceneImageMissing || isLocationMissing ? (
             <Alert severity="warning" sx={{ mb: 3 }}>
-              <Typography variant="body2">
+              <Typography
+                variant="body2"
+                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              >
                 Please complete the previous steps to upload a car photo and
                 select a location on the map before generating your scene.
               </Typography>
             </Alert>
           ) : currentStep === "completed" ? (
             <Alert severity="success" sx={{ mb: 3 }}>
-              <Typography variant="body2">
+              <Typography
+                variant="body2"
+                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              >
                 ✅ Generation complete! Your AI scene is ready.
               </Typography>
             </Alert>
           ) : (
             <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2">
+              <Typography
+                variant="body2"
+                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              >
                 {isGenerating
                   ? "🔄 Generating your AI scene..."
                   : "Ready to generate your dream scene with AI."}
@@ -576,9 +624,9 @@ export default function GenerateImageStep({
               }
               onClick={handleGenerateImage}
               sx={{
-                py: 2,
+                py: { xs: 1.5, sm: 2 },
                 borderRadius: "12px",
-                fontSize: "1.1rem",
+                fontSize: { xs: "1rem", sm: "1.1rem" },
                 fontWeight: 600,
                 textTransform: "none",
                 background: "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
@@ -600,10 +648,18 @@ export default function GenerateImageStep({
           {isGenerating && (
             <Box sx={{ textAlign: "center", py: 3 }}>
               <CircularProgress size={60} sx={{ mb: 2 }} />
-              <Typography variant="h6" color="primary">
+              <Typography
+                variant="h6"
+                color="primary"
+                sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}
+              >
                 Creating your dream scene...
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1, fontSize: { xs: "0.875rem", sm: "1rem" } }}
+              >
                 This may take 1-2 minutes
               </Typography>
             </Box>
@@ -616,10 +672,10 @@ export default function GenerateImageStep({
                 size="large"
                 onClick={handleComplete}
                 sx={{
-                  py: 2,
-                  px: 4,
+                  py: { xs: 1.5, sm: 2 },
+                  px: { xs: 3, sm: 4 },
                   borderRadius: "12px",
-                  fontSize: "1.1rem",
+                  fontSize: { xs: "1rem", sm: "1.1rem" },
                   fontWeight: 600,
                   textTransform: "none",
                   background:
@@ -632,17 +688,17 @@ export default function GenerateImageStep({
                   mr: 2,
                 }}
               >
-                ✅ Complete Dream Drive
+                ✅ Complete DriveDream
               </Button>
               <Button
                 variant="outlined"
                 size="large"
                 onClick={handleRestart}
                 sx={{
-                  py: 2,
-                  px: 4,
+                  py: { xs: 1.5, sm: 2 },
+                  px: { xs: 3, sm: 4 },
                   borderRadius: "12px",
-                  fontSize: "1.1rem",
+                  fontSize: { xs: "1rem", sm: "1.1rem" },
                   fontWeight: 600,
                   textTransform: "none",
                 }}
@@ -656,7 +712,11 @@ export default function GenerateImageStep({
         {/* Final Scene Display */}
         {finalImageUrl && (
           <Box>
-            <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
+            <Typography
+              variant="h5"
+              fontWeight={600}
+              sx={{ mb: 3, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
+            >
               Your Generated Scene
             </Typography>
 
@@ -694,20 +754,24 @@ export default function GenerateImageStep({
                   <Box
                     sx={{
                       position: "absolute",
-                      top: 16,
-                      right: 16,
+                      top: { xs: 8, sm: 16 },
+                      right: { xs: 8, sm: 16 },
                       display: "flex",
                       alignItems: "center",
                       gap: 1,
                       backgroundColor: "rgba(0,0,0,0.7)",
                       color: "white",
-                      px: 2,
-                      py: 1,
+                      px: { xs: 1, sm: 2 },
+                      py: { xs: 0.5, sm: 1 },
                       borderRadius: "20px",
                     }}
                   >
-                    <AutoAwesomeIcon sx={{ fontSize: 20 }} />
-                    <Typography variant="body2" fontWeight={600}>
+                    <AutoAwesomeIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+                    >
                       AI Generated
                     </Typography>
                   </Box>

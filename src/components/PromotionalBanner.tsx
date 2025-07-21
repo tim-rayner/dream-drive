@@ -67,11 +67,13 @@ export default function PromotionalBanner() {
   return (
     <Card
       sx={{
-        background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         color: "white",
-        mb: 4,
+        mb: { xs: 2, sm: 3, md: 4 },
+        mx: { xs: 1, sm: 2 },
         position: "relative",
         overflow: "hidden",
+        boxShadow: "0 8px 32px rgba(102, 126, 234, 0.3)",
         "&::before": {
           content: '""',
           position: "absolute",
@@ -80,96 +82,254 @@ export default function PromotionalBanner() {
           right: 0,
           bottom: 0,
           background:
-            'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="stars" patternUnits="userSpaceOnUse" width="100" height="100"><circle cx="20" cy="20" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="0.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="90" r="0.8" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23stars)"/></svg>\')',
-          opacity: 0.3,
+            "radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)",
         },
       }}
     >
-      <CardContent sx={{ position: "relative", zIndex: 1 }}>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={3}
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <Stack spacing={2} sx={{ flex: 1 }}>
+      <CardContent
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          textAlign: "center",
+          py: { xs: 3, sm: 4 },
+          px: { xs: 2, sm: 3, md: 4 },
+        }}
+      >
+        <Stack spacing={{ xs: 3, sm: 4 }} alignItems="center">
+          {/* Header Section */}
+          <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
             <Stack direction="row" spacing={1} alignItems="center">
-              <AutoAwesomeIcon sx={{ fontSize: 24 }} />
-              <Typography variant="h5" component="h2" fontWeight={600}>
-                🎉 Limited Time Offer!
+              <AutoAwesomeIcon
+                sx={{
+                  fontSize: { xs: 20, sm: 24 },
+                  color: "rgba(255,255,255,0.9)",
+                }}
+              />
+              <Typography
+                variant="h6"
+                component="h2"
+                fontWeight={600}
+                sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem", md: "1.5rem" } }}
+              >
+                Limited Time Offer
               </Typography>
             </Stack>
 
-            <Typography variant="h6" sx={{ opacity: 0.9 }}>
-              Sign up before August 1st, 2025 and get{" "}
-              <Chip
-                label="10 FREE CREDITS"
-                sx={{
-                  backgroundColor: "rgba(255,255,255,0.2)",
-                  color: "white",
-                  fontWeight: "bold",
-                  fontSize: "0.9rem",
-                }}
-              />
-            </Typography>
-
-            <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              Start creating amazing AI car scenes immediately - no purchase
-              required!
+            <Typography
+              variant="body1"
+              sx={{
+                color: "rgba(255,255,255,0.9)",
+                fontWeight: 500,
+                fontSize: { xs: "0.9rem", sm: "1rem", md: "1.125rem" },
+              }}
+            >
+              Get 5 Free Credits for New Users
             </Typography>
           </Stack>
 
-          <Stack spacing={2} alignItems="center" sx={{ minWidth: 200 }}>
+          {/* Countdown Section */}
+          <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
             <Typography
               variant="body2"
-              sx={{ opacity: 0.8, textAlign: "center" }}
+              sx={{
+                color: "rgba(255,255,255,0.8)",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              }}
             >
-              Offer ends in:
+              Offer ends in
             </Typography>
 
-            <Stack direction="row" spacing={1}>
-              <Box sx={{ textAlign: "center" }}>
-                <Typography variant="h4" fontWeight="bold">
+            <Stack direction="row" spacing={{ xs: 1, sm: 2, md: 3 }}>
+              <Box sx={{ textAlign: "center", minWidth: { xs: 50, sm: 60 } }}>
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  sx={{
+                    color: "white",
+                    fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                  }}
+                >
                   {timeLeft.days.toString().padStart(2, "0")}
                 </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontWeight: 500,
+                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                  }}
+                >
                   Days
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ opacity: 0.5 }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: "rgba(255,255,255,0.5)",
+                  fontWeight: "bold",
+                  fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                }}
+              >
                 :
               </Typography>
-              <Box sx={{ textAlign: "center" }}>
-                <Typography variant="h4" fontWeight="bold">
+              <Box sx={{ textAlign: "center", minWidth: { xs: 50, sm: 60 } }}>
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  sx={{
+                    color: "white",
+                    fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                  }}
+                >
                   {timeLeft.hours.toString().padStart(2, "0")}
                 </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontWeight: 500,
+                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                  }}
+                >
                   Hours
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ opacity: 0.5 }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: "rgba(255,255,255,0.5)",
+                  fontWeight: "bold",
+                  fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                }}
+              >
                 :
               </Typography>
-              <Box sx={{ textAlign: "center" }}>
-                <Typography variant="h4" fontWeight="bold">
+              <Box sx={{ textAlign: "center", minWidth: { xs: 50, sm: 60 } }}>
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  sx={{
+                    color: "white",
+                    fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                  }}
+                >
                   {timeLeft.minutes.toString().padStart(2, "0")}
                 </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontWeight: 500,
+                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                  }}
+                >
                   Min
                 </Typography>
               </Box>
-              <Typography variant="h4" sx={{ opacity: 0.5 }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: "rgba(255,255,255,0.5)",
+                  fontWeight: "bold",
+                  fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                }}
+              >
                 :
               </Typography>
-              <Box sx={{ textAlign: "center" }}>
-                <Typography variant="h4" fontWeight="bold">
+              <Box sx={{ textAlign: "center", minWidth: { xs: 50, sm: 60 } }}>
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  sx={{
+                    color: "white",
+                    fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                  }}
+                >
                   {timeLeft.seconds.toString().padStart(2, "0")}
                 </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontWeight: 500,
+                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                  }}
+                >
                   Sec
                 </Typography>
               </Box>
             </Stack>
+          </Stack>
+
+          {/* Benefits Section */}
+          <Stack
+            spacing={{ xs: 2, sm: 3 }}
+            alignItems="center"
+            sx={{
+              maxWidth: { xs: "100%", sm: 500 },
+              width: "100%",
+            }}
+          >
+            <Stack
+              direction="row"
+              spacing={{ xs: 1, sm: 2 }}
+              flexWrap="wrap"
+              justifyContent="center"
+              sx={{ gap: { xs: 1, sm: 2 } }}
+            >
+              <Chip
+                label="5 Free Credits"
+                sx={{
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  color: "white",
+                  fontWeight: 500,
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  height: { xs: 28, sm: 32 },
+                }}
+              />
+              <Chip
+                label="No Credit Card Required"
+                sx={{
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  color: "white",
+                  fontWeight: 500,
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  height: { xs: 28, sm: 32 },
+                }}
+              />
+              <Chip
+                label="Instant Access"
+                sx={{
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  color: "white",
+                  fontWeight: 500,
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  height: { xs: 28, sm: 32 },
+                }}
+              />
+            </Stack>
+
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 400,
+                color: "rgba(255,255,255,0.9)",
+                textAlign: "center",
+                lineHeight: 1.6,
+                fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                px: { xs: 1, sm: 0 },
+              }}
+            >
+              Sign up before August 1st, 2025 and start creating stunning AI car
+              scenes immediately. No purchase required &mdash; just sign up and
+              begin creating.
+            </Typography>
           </Stack>
         </Stack>
       </CardContent>
