@@ -1,3 +1,16 @@
+import { ArrowBack, PhotoCamera } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Fade,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  TextField,
+  Typography,
+} from "@mui/material";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 interface GoogleMapProps {
@@ -37,8 +50,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const streetViewRef = useRef<HTMLDivElement>(null);
-  const backButtonRef = useRef<HTMLButtonElement>(null);
-  const chooseSceneButtonRef = useRef<HTMLButtonElement>(null);
   const [mapState, setMapState] = useState<MapState>({
     map: null,
     streetView: null,
@@ -166,7 +177,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         // Add listener to track POV changes
         streetView.addListener("pov_changed", () => {
           const currentPov = streetView.getPov();
-          console.log("🔄 Street View POV changed:", currentPov);
           // Store the current POV in state (only heading and pitch)
           setMapState((prev) => ({
             ...prev,
@@ -181,12 +191,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         streetView.addListener("position_changed", () => {
           const currentPosition = streetView.getPosition();
           const currentPov = streetView.getPov();
-          console.log("📍 Street View position changed:", {
-            position: currentPosition
-              ? { lat: currentPosition.lat(), lng: currentPosition.lng() }
-              : null,
-            pov: currentPov,
-          });
         });
 
         // Link map and street view
@@ -220,10 +224,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           // but preserve any user-set POV
           setTimeout(() => {
             const currentPov = streetView.getPov();
-            console.log(
-              "🔄 Setting Street View position, current POV:",
-              currentPov
-            );
             streetView.setPosition(position);
             streetView.setVisible(true);
             // Don't reset POV - let user control it
@@ -243,18 +243,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                   mapRef.current.style.display = "none";
                   streetViewRef.current.style.display = "block";
 
-                  // Show choose scene button
-                  if (chooseSceneButtonRef.current) {
-                    chooseSceneButtonRef.current.style.display = "block";
-                  }
-
                   // Force Street View to reload with new position but preserve POV
                   setTimeout(() => {
                     const currentPov = streetView.getPov();
-                    console.log(
-                      "🔄 Reloading Street View, preserving POV:",
-                      currentPov
-                    );
                     streetView.setPosition(position);
                     streetView.setVisible(true);
                     // Don't reset POV - preserve user's view
@@ -272,19 +263,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                           streetViewRef.current &&
                           streetViewRef.current.children.length === 0
                         ) {
-                          console.log(
-                            "Street View failed to load. This may be due to rate limiting or the location not having Street View coverage."
-                          );
                           // Return to map view
                           if (mapRef.current && streetViewRef.current) {
                             mapRef.current.style.display = "block";
                             streetViewRef.current.style.display = "none";
-                          }
-                          if (backButtonRef.current) {
-                            backButtonRef.current.style.display = "none";
-                          }
-                          if (chooseSceneButtonRef.current) {
-                            chooseSceneButtonRef.current.style.display = "none";
                           }
                           setMapState((prev) => ({
                             ...prev,
@@ -298,6 +280,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                       setMapState((prev) => ({
                         ...prev,
                         isLoadingStreetView: false,
+                        isStreetViewActive: true,
                       }));
                     }
                   };
@@ -306,27 +289,19 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                 }
               } else {
                 // Street View not available, log message
-                console.log(
-                  "Street View is not available at this location. Please try a different location."
-                );
                 setMapState((prev) => ({
                   ...prev,
                   isLoadingStreetView: false,
+                  isStreetViewActive: false,
                 }));
                 return;
               }
             }
           );
 
-          // Show back button
-          if (backButtonRef.current) {
-            backButtonRef.current.style.display = "block";
-          }
-
           setMapState((prev) => ({
             ...prev,
             marker,
-            isStreetViewActive: true,
           }));
 
           // Call the parent callback with the new map data
@@ -335,7 +310,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
               position: { lat: position.lat(), lng: position.lng() },
               marker,
             };
-            console.log("Sending location data to parent:", mapData);
             onMapDataUpdate(mapData);
           }
         });
@@ -374,14 +348,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         }, 50);
       }
 
-      // Hide back button and choose scene button
-      if (backButtonRef.current) {
-        backButtonRef.current.style.display = "none";
-      }
-      if (chooseSceneButtonRef.current) {
-        chooseSceneButtonRef.current.style.display = "none";
-      }
-
       // Remove the marker from the map
       if (mapState.marker) {
         mapState.marker.map = null;
@@ -410,38 +376,18 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       // Get the Street View panorama data
       const panorama = mapState.streetView;
       const position = panorama.getPosition();
-      const pov = panorama.getPov();
 
       if (!position) {
         throw new Error("Position not available");
       }
 
       // Use the stored POV from state instead of getting it from panorama
-      console.log("📸 Getting current POV for capture...");
       const currentPov = mapState.currentPov || panorama.getPov();
-      console.log("🎯 Final POV at capture moment:", currentPov);
-      console.log(
-        "💾 Using stored POV from state:",
-        mapState.currentPov ? "Yes" : "No"
-      );
-
-      console.log("Capturing Street View scene:", {
-        position: { lat: position.lat(), lng: position.lng() },
-        pov: { heading: currentPov.heading, pitch: currentPov.pitch },
-      });
 
       // Create a Street View Static API URL with current view orientation
       const staticImageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${position.lat()},${position.lng()}&heading=${
         currentPov.heading
       }&pitch=${currentPov.pitch}&key=${apiKey}`;
-
-      console.log("🌐 Street View Static API URL:", staticImageUrl);
-      console.log("📊 POV parameters being sent:", {
-        heading: currentPov.heading,
-        pitch: currentPov.pitch,
-        headingType: typeof currentPov.heading,
-        pitchType: typeof currentPov.pitch,
-      });
 
       // Convert the static image to base64
       const response = await fetch(staticImageUrl);
@@ -451,44 +397,30 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64String = reader.result as string;
-          console.log(
-            "✅ Scene captured successfully with current orientation"
-          );
           resolve(base64String);
         };
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
     } catch (error) {
-      console.error("❌ Error capturing scene:", error);
+      console.error("Error capturing scene:", error);
       throw error;
     }
   };
 
   const handleChooseScene = async () => {
     try {
-      console.log("🎬 Starting scene capture process...");
-
       // Add a small delay to ensure Street View is fully loaded and user's view is applied
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      console.log("📸 Capturing scene image...");
       const sceneImage = await handleSceneCapture();
-      console.log(
-        "✅ Scene image captured successfully, length:",
-        sceneImage.length
-      );
 
       // Call the parent callback with the captured scene
       if (onSceneCapture) {
-        console.log("📞 Calling onSceneCapture callback...");
         onSceneCapture(sceneImage);
-        console.log("✅ onSceneCapture callback completed");
-      } else {
-        console.warn("⚠️ onSceneCapture callback is not provided");
       }
     } catch (error) {
-      console.error("❌ Failed to capture scene:", error);
+      console.error("Failed to capture scene:", error);
       alert("Failed to capture scene. Please try again.");
     }
   };
@@ -663,27 +595,19 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   };
 
   return (
-    <div
+    <Box
       className={className}
-      style={{
+      sx={{
         position: "relative",
         width: "100%",
         height: "400px",
         ...style,
       }}
     >
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: translateY(-50%) rotate(0deg); }
-            100% { transform: translateY(-50%) rotate(360deg); }
-          }
-        `}
-      </style>
-      {/* Search Bar */}
-      {showSearchBar && (
-        <div
-          style={{
+      {/* Search Bar - Only show when not in street view */}
+      {showSearchBar && !mapState.isStreetViewActive && (
+        <Box
+          sx={{
             position: "absolute",
             top: "10px",
             left: "10px",
@@ -693,61 +617,54 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             flexDirection: "column",
           }}
         >
-          <div
-            style={{
+          <Box
+            sx={{
               position: "relative",
               width: "100%",
               maxWidth: "400px",
             }}
           >
-            <input
-              type="text"
+            <TextField
+              fullWidth
               placeholder="Search for a location..."
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => setShowAutocomplete(true)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                paddingRight: isSearching ? "40px" : "16px",
-                border: "1px solid rgba(0, 0, 0, 0.12)",
-                borderRadius: "8px",
-                fontSize: "14px",
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(8px)",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                outline: "none",
-                transition: "all 0.2s ease",
-                minHeight: "44px", // Better touch target
-              }}
               onBlur={() => {
                 // Delay hiding autocomplete to allow for clicks
                 setTimeout(() => setShowAutocomplete(false), 200);
               }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  "& fieldset": {
+                    borderColor: "rgba(0, 0, 0, 0.12)",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "rgba(0, 0, 0, 0.24)",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.main",
+                  },
+                },
+                "& .MuiInputBase-input": {
+                  minHeight: "44px",
+                  padding: "8px 12px",
+                },
+              }}
+              InputProps={{
+                endAdornment: isSearching ? (
+                  <CircularProgress size={20} />
+                ) : null,
+              }}
             />
 
-            {/* Loading indicator */}
-            {isSearching && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: "16px",
-                  height: "16px",
-                  border: "2px solid #f3f3f3",
-                  borderTop: "2px solid #3498db",
-                  borderRadius: "50%",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-            )}
-
             {/* Autocomplete dropdown */}
-            {showAutocomplete && searchResults.length > 0 && (
-              <div
-                style={{
+            <Fade in={showAutocomplete && searchResults.length > 0}>
+              <Paper
+                sx={{
                   position: "absolute",
                   top: "100%",
                   left: 0,
@@ -763,150 +680,126 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
                   zIndex: 1001,
                 }}
               >
-                {searchResults.map((prediction, index) => (
-                  <div
-                    key={prediction.place_id}
-                    onClick={() => handleSearchSelect(prediction)}
-                    style={{
-                      padding: "12px 16px",
-                      cursor: "pointer",
-                      borderBottom:
-                        index < searchResults.length - 1
-                          ? "1px solid rgba(0, 0, 0, 0.06)"
-                          : "none",
-                      transition: "background-color 0.2s ease",
-                      minHeight: "44px", // Better touch target
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "rgba(0, 0, 0, 0.04)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        color: "#333",
-                        marginBottom: "2px",
+                <List dense>
+                  {searchResults.map((prediction, index) => (
+                    <ListItem
+                      key={prediction.place_id}
+                      onClick={() => handleSearchSelect(prediction)}
+                      sx={{
+                        cursor: "pointer",
+                        minHeight: "44px",
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.04)",
+                        },
+                        borderBottom:
+                          index < searchResults.length - 1
+                            ? "1px solid rgba(0, 0, 0, 0.06)"
+                            : "none",
                       }}
                     >
-                      {prediction.structured_formatting?.main_text ||
-                        prediction.description}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "#666",
-                      }}
-                    >
-                      {prediction.structured_formatting?.secondary_text || ""}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2" fontWeight={500}>
+                            {prediction.structured_formatting?.main_text ||
+                              prediction.description}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary">
+                            {prediction.structured_formatting?.secondary_text ||
+                              ""}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Paper>
+            </Fade>
+          </Box>
+        </Box>
       )}
-      <div
+
+      <Box
         ref={mapRef}
         id="map"
-        style={{
+        sx={{
           width: "100%",
           height: "100%",
         }}
       />
 
-      <div
+      <Box
         ref={streetViewRef}
         id="street-view"
-        style={{
+        sx={{
           width: "100%",
           height: "100%",
           display: "none",
         }}
       />
 
-      <button
-        ref={backButtonRef}
-        id="back-btn"
-        onClick={handleBackToMap}
-        style={{
-          position: "absolute",
-          top: "10px",
-          left: "10px",
-          zIndex: 1000,
-          display: "none",
-          padding: "12px 16px",
-          backgroundColor: "rgba(255, 255, 255, 0.95)",
-          border: "1px solid rgba(0, 0, 0, 0.12)",
-          borderRadius: "8px",
-          cursor: "pointer",
-          fontSize: "14px",
-          fontWeight: "500",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-          transition: "all 0.2s ease",
-          backdropFilter: "blur(8px)",
-          minHeight: "44px", // Better touch target
-          minWidth: "44px", // Better touch target
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(0, 0, 0, 0.2)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.95)";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-        }}
-      >
-        ← Back to Map
-      </button>
+      {/* Back Button */}
+      <Fade in={mapState.isStreetViewActive}>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBack />}
+          onClick={handleBackToMap}
+          sx={{
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            zIndex: 1000,
+            display: mapState.isStreetViewActive ? "flex" : "none",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            color: "text.primary",
+            border: "1px solid rgba(0, 0, 0, 0.12)",
+            backdropFilter: "blur(8px)",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            minHeight: "44px",
+            minWidth: "44px",
+            "&:hover": {
+              backgroundColor: "rgba(255, 255, 255, 1)",
+              boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
+            },
+          }}
+        >
+          Back to Map
+        </Button>
+      </Fade>
 
-      <button
-        ref={chooseSceneButtonRef}
-        id="choose-scene-btn"
-        onClick={handleChooseScene}
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          zIndex: 1000,
-          display: "none",
-          padding: "12px 16px",
-          backgroundColor: "rgba(76, 175, 80, 0.95)",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          cursor: "pointer",
-          fontSize: "14px",
-          fontWeight: "600",
-          boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
-          transition: "all 0.2s ease",
-          backdropFilter: "blur(8px)",
-          minHeight: "44px", // Better touch target
-          minWidth: "44px", // Better touch target
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(76, 175, 80, 1)";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(76, 175, 80, 0.4)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(76, 175, 80, 0.95)";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(76, 175, 80, 0.3)";
-        }}
-      >
-        📸 Choose Scene
-      </button>
+      {/* Choose Scene Button */}
+      <Fade in={mapState.isStreetViewActive}>
+        <Button
+          variant="contained"
+          startIcon={<PhotoCamera />}
+          onClick={handleChooseScene}
+          sx={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            zIndex: 1000,
+            display: mapState.isStreetViewActive ? "flex" : "none",
+            backgroundColor: "rgba(76, 175, 80, 0.95)",
+            color: "white",
+            backdropFilter: "blur(8px)",
+            boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
+            minHeight: "44px",
+            minWidth: "44px",
+            "&:hover": {
+              backgroundColor: "rgba(76, 175, 80, 1)",
+              boxShadow: "0 6px 16px rgba(76, 175, 80, 0.4)",
+            },
+          }}
+        >
+          Choose Scene
+        </Button>
+      </Fade>
 
-      {mapState.isLoadingStreetView && (
-        <div
-          style={{
+      {/* Loading Overlay */}
+      <Fade in={mapState.isLoadingStreetView}>
+        <Box
+          sx={{
             position: "absolute",
             top: "50%",
             left: "50%",
@@ -916,16 +809,16 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             color: "white",
             padding: "12px 20px",
             borderRadius: "8px",
-            fontSize: "14px",
-            fontWeight: "500",
             textAlign: "center",
             minWidth: "120px",
           }}
         >
-          Loading Street View...
-        </div>
-      )}
-    </div>
+          <Typography variant="body2" fontWeight={500}>
+            Loading Street View...
+          </Typography>
+        </Box>
+      </Fade>
+    </Box>
   );
 };
 
