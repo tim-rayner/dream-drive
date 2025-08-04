@@ -59,7 +59,7 @@ export default function Home() {
         }}
       >
         <Stack
-          spacing={{ xs: 2, sm: 3 }}
+          spacing={{ xs: 2, sm: 1 }}
           alignItems="center"
           sx={{ mb: { xs: 3, sm: 4, md: 6 } }}
         >
@@ -72,11 +72,12 @@ export default function Home() {
             }}
           >
             <Stack
-              direction={{ xs: "column", sm: "row" }}
+              direction="row"
               spacing={{ xs: 1, sm: 2 }}
               alignItems="center"
               justifyContent="center"
               sx={{ width: "auto" }}
+              padding={2}
             >
               <Typography
                 variant="h1"
@@ -91,10 +92,9 @@ export default function Home() {
                   WebkitTextFillColor: "transparent",
                   fontWeight: 700,
                   fontSize: {
-                    xs: "2rem",
+                    xs: "1.5rem",
                     sm: "2.5rem",
                     md: "3rem",
-                    lg: "3.5rem",
                   },
                   lineHeight: 1.2,
                   wordBreak: "break-word",
@@ -104,7 +104,7 @@ export default function Home() {
               </Typography>
               <AutoAwesomeIcon
                 sx={{
-                  fontSize: { xs: 32, sm: 40, md: 48 },
+                  fontSize: { xs: 24, sm: 40, md: 48 },
                   color: "primary.main",
                   filter: "drop-shadow(0 0 8px rgba(139, 92, 246, 0.5))",
                   flexShrink: 0,

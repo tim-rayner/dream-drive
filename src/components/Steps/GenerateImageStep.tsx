@@ -169,8 +169,6 @@ export default function GenerateImageStep({
     setFinalImageUrl(null);
 
     try {
-      // First, spend a credit
-      console.log("💰 Spending credit before image generation...");
       const creditResult = await spendCredit();
 
       if (!creditResult.success) {
@@ -178,11 +176,6 @@ export default function GenerateImageStep({
         setCreditError(creditResult.error || "Failed to spend credit");
         return;
       }
-
-      console.log(
-        "✅ Credit spent successfully. Remaining credits:",
-        creditResult.remainingCredits
-      );
 
       // Refresh credits in the context to update the navbar
       await refreshCredits();
@@ -206,13 +199,12 @@ export default function GenerateImageStep({
       });
 
       if (result.success && result.imageUrl) {
-        console.log("✅ Image generation completed successfully!");
-        console.log("🎯 Place description:", result.placeDescription);
-        console.log("📝 Scene description:", result.sceneDescription);
-        console.log("🖼️ Generated image URL:", result.imageUrl);
-
         setFinalImageUrl(result.imageUrl);
         setCurrentStep("completed");
+
+        setTimeout(() => {
+          onComplete(result.imageUrl);
+        }, 150);
       } else {
         throw new Error("No image URL returned from API");
       }

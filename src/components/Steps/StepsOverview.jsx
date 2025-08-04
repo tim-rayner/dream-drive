@@ -383,9 +383,10 @@ const StepsOverview = () => {
             transition={{ duration: 0.3 }}
           >
             <UploadPhotoStep
-              onComplete={() =>
-                setStepCompletion((prev) => ({ ...prev, 0: true }))
-              }
+              onComplete={() => {
+                setStepCompletion((prev) => ({ ...prev, 0: true }));
+                setActiveStep(1);
+              }}
               uploadedFile={uploadedFile}
               onFileUpload={handleFileUpload}
             />
@@ -432,6 +433,7 @@ const StepsOverview = () => {
           alignItems: "stretch",
           maxWidth: 1200,
           width: "100%",
+          alignItems: "center",
         }}
       >
         <UploadPhotoCard

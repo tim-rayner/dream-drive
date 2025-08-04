@@ -1,4 +1,5 @@
 import { Alert, Box, Card, CardContent, Chip, Typography } from "@mui/material";
+import React from "react";
 import InteractiveGoogleMap from "../Maps/InteractiveGoogleMap";
 
 interface ChooseLocationStepProps {
@@ -22,6 +23,17 @@ export default function ChooseLocationStep({
   mapContainerRef,
 }: ChooseLocationStepProps) {
   const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
+  // Call onComplete when sceneImage is captured
+  React.useEffect(() => {
+    if (sceneImage && onComplete) {
+      // Add a small delay to ensure the scene is properly captured
+      const timer = setTimeout(() => {
+        onComplete();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [sceneImage, onComplete]);
 
   if (!GOOGLE_MAPS_API_KEY) {
     return (
