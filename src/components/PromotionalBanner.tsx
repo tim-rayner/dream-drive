@@ -12,8 +12,15 @@ export default function PromotionalBanner() {
     seconds: 0,
   });
   const [isExpired, setIsExpired] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const offerEndDate = new Date("2025-08-01T00:00:00Z");
 
     const calculateTimeLeft = () => {
@@ -45,7 +52,12 @@ export default function PromotionalBanner() {
     const timer = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [mounted]);
+
+  // Don't render anything until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   if (isExpired) {
     return null;

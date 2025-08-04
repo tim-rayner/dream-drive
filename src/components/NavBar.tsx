@@ -1,6 +1,10 @@
 "use client";
 
-import { History as HistoryIcon, Logout } from "@mui/icons-material";
+import {
+  History as HistoryIcon,
+  Logout,
+  Settings as SettingsIcon,
+} from "@mui/icons-material";
 import {
   AppBar,
   Box,
@@ -23,6 +27,7 @@ export default function NavBar() {
   const { user, profile, login, logout, loading } = useAuth();
   const router = useRouter();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [mounted, setMounted] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -38,48 +43,7 @@ export default function NavBar() {
   };
 
   if (loading) {
-    return (
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          background: "rgba(26, 26, 46, 0.95)",
-          backdropFilter: "blur(10px)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-          color: "white",
-          top: 0,
-          zIndex: 1100,
-        }}
-      >
-        <Container maxWidth="xl">
-          <Toolbar sx={{ justifyContent: "space-between", py: 1 }}>
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{
-                background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontWeight: 700,
-                fontSize: { xs: "1rem", sm: "1.25rem" },
-              }}
-            >
-              DriveDream
-            </Typography>
-            <Box>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
-              >
-                Loading...
-              </Typography>
-            </Box>
-          </Toolbar>
-        </Container>
-      </AppBar>
-    );
+    return null;
   }
 
   return (
@@ -159,25 +123,15 @@ export default function NavBar() {
                 {/* Credits Display */}
                 <CreditsDisplay variant="button" size="medium" />
 
-                <Typography
-                  variant="body2"
-                  sx={{
-                    display: { xs: "none", md: "block" },
-                    color: "rgba(255, 255, 255, 0.9)",
-                    fontWeight: 500,
-                    fontSize: { xs: "0.875rem", sm: "1rem" },
-                  }}
-                >
-                  {profile?.full_name || user.email}
-                </Typography>
-
-                <IconButton
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
                   onClick={handleMenu}
                   sx={{
-                    p: 0,
-                    color: "white",
-                    minWidth: "44px",
-                    minHeight: "44px",
+                    cursor: "pointer",
+                    px: 2,
+                    borderRadius: 1,
                     "&:hover": {
                       transform: "scale(1.05)",
                       transition: "transform 0.2s ease",
@@ -185,12 +139,33 @@ export default function NavBar() {
                     },
                   }}
                 >
-                  <UserAvatar
-                    fullName={profile?.full_name}
-                    avatarUrl={profile?.avatar_url}
-                    size="small"
-                  />
-                </IconButton>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      display: { xs: "none", md: "block" },
+                      color: "rgba(255, 255, 255, 0.9)",
+                      fontWeight: 500,
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                    }}
+                  >
+                    {profile?.full_name || user.email}
+                  </Typography>
+
+                  <IconButton
+                    sx={{
+                      p: 0,
+                      color: "white",
+                      minWidth: "44px",
+                      minHeight: "44px",
+                    }}
+                  >
+                    <UserAvatar
+                      fullName={profile?.full_name}
+                      avatarUrl={profile?.avatar_url}
+                      size="small"
+                    />
+                  </IconButton>
+                </Stack>
 
                 <Menu
                   anchorEl={anchorEl}
@@ -248,6 +223,9 @@ export default function NavBar() {
                       },
                     }}
                   >
+                    <SettingsIcon
+                      sx={{ mr: 1, fontSize: { xs: 18, sm: 20 } }}
+                    />
                     <Typography
                       sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
                     >

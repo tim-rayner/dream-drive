@@ -1,10 +1,21 @@
 "use client";
 
 import { Avatar, Button, Stack, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginButton() {
   const { user, profile, login, logout, loading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render anything until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   if (loading) return null;
 

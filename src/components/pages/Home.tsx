@@ -2,7 +2,7 @@
 
 import LoginButton from "@/components/LoginButton";
 import PromotionalBanner from "@/components/PromotionalBanner";
-import StepsOverview from "@/components/Steps/StepsOverview";
+import StepsOverview from "@/components/steps/StepsOverview";
 import ThemeWrapper from "@/components/ThemeWrapper";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -21,7 +21,7 @@ import {
   Typography,
 } from "@mui/material";
 
-export default function ClientHome() {
+export default function Home() {
   const { user, loading } = useAuth();
 
   // Show loading state

@@ -36,6 +36,7 @@ interface GenerateImageStepProps {
     position: { lat: number; lng: number } | null;
     marker: unknown | null;
   };
+  generatedImageUrl?: string | null;
 }
 
 type TimeOfDay = "sunrise" | "afternoon" | "dusk" | "night";
@@ -106,16 +107,26 @@ export default function GenerateImageStep({
   uploadedFile,
   sceneImage,
   mapData,
+  generatedImageUrl,
 }: GenerateImageStepProps) {
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("afternoon");
   const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<GenerationStep>("idle");
-  const [finalImageUrl, setFinalImageUrl] = useState<string | null>(null);
+  const [finalImageUrl, setFinalImageUrl] = useState<string | null>(
+    generatedImageUrl || null
+  );
   const [error, setError] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState<string>("");
   const [creditError, setCreditError] = useState<string | null>(null);
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
+
+  // Initialize with existing generated image if available
+  useEffect(() => {
+    if (generatedImageUrl && !finalImageUrl) {
+      setFinalImageUrl(generatedImageUrl);
+    }
+  }, [generatedImageUrl, finalImageUrl]);
 
   // Convert uploaded file to base64 for preview and API call
   useEffect(() => {
