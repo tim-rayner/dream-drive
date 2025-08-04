@@ -1,5 +1,5 @@
 import { Alert, Box, Card, CardContent, Chip, Typography } from "@mui/material";
-import GoogleMap from "../Maps/GoogleMap";
+import InteractiveGoogleMap from "../Maps/InteractiveGoogleMap";
 
 interface ChooseLocationStepProps {
   onComplete: () => void;
@@ -79,21 +79,13 @@ export default function ChooseLocationStep({
           mx: { xs: -1, sm: 0 },
         }}
       >
-        <GoogleMap
+        <InteractiveGoogleMap
           apiKey={GOOGLE_MAPS_API_KEY}
           initialCenter={mapData.position || { lat: 35.3606, lng: 138.7274 }}
           initialZoom={12}
           mapId="DEMO_MAP_ID"
           onSceneCapture={onSceneCapture}
           onMapDataUpdate={onMapDataUpdate}
-          style={{
-            height: "350px",
-            borderRadius: "12px",
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "divider",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          }}
         />
       </Box>
 

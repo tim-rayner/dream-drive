@@ -13,14 +13,36 @@ import {
 import React, { useState } from "react";
 import GoogleMap from "./GoogleMap";
 
-const InteractiveGoogleMap: React.FC = () => {
-  // Replace with your actual Google Maps API key
-  const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+interface InteractiveGoogleMapProps {
+  apiKey: string;
+  initialCenter?: { lat: number; lng: number };
+  initialZoom?: number;
+  mapId?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  onSceneCapture?: (sceneImage: string) => void;
+  onMapDataUpdate?: (mapData: {
+    position: { lat: number; lng: number };
+    marker: unknown;
+  }) => void;
+  showSearchBar?: boolean;
+}
 
+const InteractiveGoogleMap: React.FC<InteractiveGoogleMapProps> = ({
+  apiKey,
+  initialCenter = { lat: 35.3606, lng: 138.7274 }, // Mount Fuji, Japan default
+  initialZoom = 12,
+  mapId = "DEMO_MAP_ID",
+  className = "",
+  style = {},
+  onSceneCapture,
+  onMapDataUpdate,
+  showSearchBar = true,
+}) => {
   // State for captured scene
   const [sceneImage, setSceneImage] = useState<string | null>(null);
 
-  if (!GOOGLE_MAPS_API_KEY) {
+  if (!apiKey) {
     return (
       <Paper
         elevation={3}
@@ -36,8 +58,7 @@ const InteractiveGoogleMap: React.FC = () => {
           Google Maps API Key Required
         </Typography>
         <Typography variant="body1" gutterBottom>
-          Please set the <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{" "}
-          environment variable with your Google Maps API key.
+          Please provide a valid Google Maps API key.
         </Typography>
         <Typography variant="body2">
           You can get a free API key from the{" "}
@@ -57,17 +78,15 @@ const InteractiveGoogleMap: React.FC = () => {
   const handleSceneCapture = (capturedImage: string) => {
     setSceneImage(capturedImage);
     console.log("Scene captured:", capturedImage.substring(0, 50) + "...");
+
+    // Call the parent callback if provided
+    if (onSceneCapture) {
+      onSceneCapture(capturedImage);
+    }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Google Maps Component Demo
-      </Typography>
-      <Typography variant="body1" sx={{ mb: 2 }}>
-        Click anywhere on the map to drop a pin and switch to Street View!
-      </Typography>
-
+    <Box sx={{ p: 0 }}>
       <Box
         sx={{
           border: "1px solid #ddd",
@@ -77,11 +96,15 @@ const InteractiveGoogleMap: React.FC = () => {
         }}
       >
         <GoogleMap
-          apiKey={GOOGLE_MAPS_API_KEY}
-          initialCenter={{ lat: 35.3606, lng: 138.7274 }} // Mount Fuji, Japan
-          initialZoom={12}
-          mapId="DEMO_MAP_ID" // You can create custom Map IDs in Google Cloud Console
+          apiKey={apiKey}
+          initialCenter={initialCenter}
+          initialZoom={initialZoom}
+          mapId={mapId}
+          className={className}
+          style={style}
           onSceneCapture={handleSceneCapture}
+          onMapDataUpdate={onMapDataUpdate}
+          showSearchBar={showSearchBar}
         />
       </Box>
 
