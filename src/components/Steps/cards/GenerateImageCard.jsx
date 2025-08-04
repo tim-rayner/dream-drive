@@ -68,7 +68,7 @@ const GenerateImageCard = ({
             {generatedImageUrl ? (
               // Show generated image preview
               <Stack
-                spacing={2}
+                spacing={3}
                 alignItems="center"
                 sx={{
                   height: "100%",
@@ -78,14 +78,18 @@ const GenerateImageCard = ({
               >
                 <Box
                   sx={{
-                    width: "100%",
-                    height: { xs: 120, sm: 140 },
-                    borderRadius: "12px",
-                    overflow: "hidden",
+                    width: { xs: 60, sm: 80 },
+                    height: { xs: 60, sm: 80 },
+                    borderRadius: "50%",
+                    background: generatedImageUrl
+                      ? "linear-gradient(135deg, #10B981 0%, #34D399 100%)"
+                      : "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mb: 2,
                     position: "relative",
-                    border: "2px solid",
-                    borderColor: "success.main",
-                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)",
+                    overflow: "hidden",
                   }}
                 >
                   <img
@@ -95,6 +99,7 @@ const GenerateImageCard = ({
                       width: "100%",
                       height: "100%",
                       objectFit: "cover",
+                      borderRadius: "50%",
                     }}
                   />
                   <Box
@@ -111,16 +116,7 @@ const GenerateImageCard = ({
                       py: 0.5,
                       borderRadius: "12px",
                     }}
-                  >
-                    <AutoAwesomeIcon sx={{ fontSize: 12 }} />
-                    <Typography
-                      variant="caption"
-                      fontWeight={600}
-                      sx={{ fontSize: "0.7rem" }}
-                    >
-                      AI
-                    </Typography>
-                  </Box>
+                  ></Box>
                 </Box>
                 <Typography
                   variant="h6"

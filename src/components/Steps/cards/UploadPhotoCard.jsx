@@ -14,12 +14,7 @@ import {
 } from "@mui/material";
 import { motion } from "framer-motion";
 
-const UploadPhotoCard = ({
-  uploadedFile,
-  activeStep,
-  onFileUpload,
-  triggerFilePicker,
-}) => {
+const UploadPhotoCard = ({ uploadedFile, activeStep, triggerFilePicker }) => {
   return (
     <Box
       sx={{
