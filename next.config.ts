@@ -6,6 +6,16 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "2mb",
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "replicate.delivery",
+        port: "",
+        pathname: "/**",
+      },
+    ],
+  },
   async headers() {
     return [
       {

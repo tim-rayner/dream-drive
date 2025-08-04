@@ -13,9 +13,9 @@ export default function PromotionalBanner() {
   });
   const [isExpired, setIsExpired] = useState(false);
 
-  const offerEndDate = new Date("2025-08-01T00:00:00Z");
-
   useEffect(() => {
+    const offerEndDate = new Date("2025-08-01T00:00:00Z");
+
     const calculateTimeLeft = () => {
       try {
         const now = new Date();
@@ -40,21 +40,17 @@ export default function PromotionalBanner() {
       }
     };
 
-    // Calculate immediately
     calculateTimeLeft();
 
-    // Set up interval for countdown
     const timer = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
-  // Don't show banner if offer has expired
   if (isExpired) {
     return null;
   }
 
-  // Additional safety check - don't show if all time values are 0
   if (
     timeLeft.days === 0 &&
     timeLeft.hours === 0 &&
@@ -96,7 +92,6 @@ export default function PromotionalBanner() {
         }}
       >
         <Stack spacing={{ xs: 3, sm: 4 }} alignItems="center">
-          {/* Header Section */}
           <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
             <Stack direction="row" spacing={1} alignItems="center">
               <AutoAwesomeIcon
@@ -127,7 +122,6 @@ export default function PromotionalBanner() {
             </Typography>
           </Stack>
 
-          {/* Countdown Section */}
           <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
             <Typography
               variant="body2"
@@ -264,7 +258,6 @@ export default function PromotionalBanner() {
             </Stack>
           </Stack>
 
-          {/* Benefits Section */}
           <Stack
             spacing={{ xs: 2, sm: 3 }}
             alignItems="center"

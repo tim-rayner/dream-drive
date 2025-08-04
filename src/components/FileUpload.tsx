@@ -171,17 +171,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
             compressionRatio: result.compressionRatio,
             warnings: result.warnings,
           });
-
-          console.log("✅ Image processed:", {
-            originalSize:
-              Math.round((result.originalSize / 1024 / 1024) * 100) / 100 +
-              "MB",
-            processedSize:
-              Math.round((result.processedSize / 1024 / 1024) * 100) / 100 +
-              "MB",
-            compressionRatio: Math.round(result.compressionRatio * 100) + "%",
-            warnings: result.warnings,
-          });
         }
 
         // Simulate upload process

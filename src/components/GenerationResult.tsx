@@ -30,6 +30,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { type Generation } from "../lib/supabase";
@@ -203,14 +204,17 @@ export default function GenerationResult({
                 borderColor: "divider",
               }}
             >
-              <img
+              <Image
                 src={generation.final_image_url}
                 alt="Generated car scene"
+                width={800}
+                height={600}
                 style={{
                   width: "100%",
                   height: "auto",
                   display: "block",
                 }}
+                priority
               />
             </Box>
 

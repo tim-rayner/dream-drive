@@ -21,6 +21,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useCredits } from "../../context/CreditsContext";
@@ -111,13 +112,9 @@ export default function GenerateImageStep({
   const [currentStep, setCurrentStep] = useState<GenerationStep>("idle");
   const [finalImageUrl, setFinalImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [generationDetails, setGenerationDetails] = useState<{
-    placeDescription?: string;
-    sceneDescription?: string;
-  } | null>(null);
   const [customInstructions, setCustomInstructions] = useState<string>("");
   const [creditError, setCreditError] = useState<string | null>(null);
-  const { credits, refreshCredits } = useCredits();
+  const { refreshCredits } = useCredits();
   const { user } = useAuth();
 
   // Convert uploaded file to base64 for preview and API call
@@ -159,7 +156,6 @@ export default function GenerateImageStep({
     setError(null);
     setCreditError(null);
     setFinalImageUrl(null);
-    setGenerationDetails(null);
 
     try {
       // First, spend a credit
@@ -205,10 +201,6 @@ export default function GenerateImageStep({
         console.log("🖼️ Generated image URL:", result.imageUrl);
 
         setFinalImageUrl(result.imageUrl);
-        setGenerationDetails({
-          placeDescription: result.placeDescription,
-          sceneDescription: result.sceneDescription,
-        });
         setCurrentStep("completed");
       } else {
         throw new Error("No image URL returned from API");
@@ -262,7 +254,6 @@ export default function GenerateImageStep({
     setCurrentStep("idle");
     setFinalImageUrl(null);
     setError(null);
-    setGenerationDetails(null);
   };
 
   const ImagePreviewCard = ({
@@ -400,12 +391,13 @@ export default function GenerateImageStep({
               backgroundColor: "background.paper",
             }}
           >
-            <img
+            <Image
               src={imageUrl || ""}
               alt={title}
+              width={800}
+              height={600}
+              priority
               style={{
-                width: "100%",
-                height: "auto",
                 display: "block",
                 objectFit: "cover",
               }}
@@ -667,7 +659,7 @@ export default function GenerateImageStep({
                 color="text.secondary"
                 sx={{ mt: 1, fontSize: { xs: "0.875rem", sm: "1rem" } }}
               >
-                This may take 1-2 minutes
+                This may take up to a minute ⏳
               </Typography>
             </Box>
           )}
@@ -736,7 +728,7 @@ export default function GenerateImageStep({
                 boxShadow: "0 8px 32px rgba(139, 92, 246, 0.3)",
               }}
             >
-              <CardContent sx={{ p: 0 }}>
+              <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
                 <Box
                   sx={{
                     position: "relative",
@@ -748,12 +740,13 @@ export default function GenerateImageStep({
                     backgroundColor: "background.paper",
                   }}
                 >
-                  <img
+                  <Image
                     src={finalImageUrl}
                     alt="Generated AI Scene"
+                    width={800}
+                    height={600}
+                    priority
                     style={{
-                      width: "100%",
-                      height: "auto",
                       display: "block",
                       objectFit: "cover",
                     }}

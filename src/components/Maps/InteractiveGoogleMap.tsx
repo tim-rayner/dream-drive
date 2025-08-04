@@ -89,10 +89,10 @@ const InteractiveGoogleMap: React.FC<InteractiveGoogleMapProps> = ({
     <Box sx={{ p: 0 }}>
       <Box
         sx={{
-          border: "1px solid #ddd",
           borderRadius: 2,
           overflow: "hidden",
           mb: 3,
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
         }}
       >
         <GoogleMap
