@@ -2,7 +2,7 @@
 
 import LoginButton from "@/components/LoginButton";
 import PromotionalBanner from "@/components/PromotionalBanner";
-import StepsOverview from "@/components/steps/StepsOverview";
+import StepsOverview from "@/components/Steps/StepsOverview";
 import ThemeWrapper from "@/components/ThemeWrapper";
 import { useAuth } from "@/context/AuthContext";
 import {
