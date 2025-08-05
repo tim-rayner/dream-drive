@@ -1,4 +1,5 @@
 import PromotionalBanner from "@/components/PromotionalBanner";
+import Footer from "@/components/layout/Footer";
 import { CTAFooter, FeatureStrip, Hero } from "@/components/marketing";
 import { Box } from "@mui/material";
 
@@ -12,6 +13,8 @@ export default function UnauthenticatedHome() {
       <FeatureStrip />
 
       <CTAFooter />
+
+      <Footer />
     </Box>
   );
 }

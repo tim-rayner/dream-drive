@@ -27,6 +27,7 @@ export default function LoginButton() {
           color="primary"
           onClick={login}
           size="large"
+          data-testid="login-button"
           sx={{
             fontSize: "1.1rem",
             px: 4,

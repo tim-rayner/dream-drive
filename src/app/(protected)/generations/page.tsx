@@ -20,6 +20,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { useEffect, useRef, useState } from "react";
 import GenerationResult from "../../../components/GenerationResult";
 import ThemeWrapper from "../../../components/ThemeWrapper";
+import Footer from "../../../components/layout/Footer";
 import { useAuth } from "../../../context/AuthContext";
 import { type Generation } from "../../../lib/supabase";
 
@@ -193,22 +194,23 @@ export default function GenerationsPage() {
         <Box
           sx={{
             minHeight: "100vh",
-            background:
-              "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
-            py: 4,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Container maxWidth="lg">
-            <Stack
-              spacing={4}
-              alignItems="center"
-              justifyContent="center"
-              sx={{ minHeight: "50vh" }}
-            >
-              <CircularProgress />
-              <Typography color="text.secondary">Loading...</Typography>
-            </Stack>
-          </Container>
+          <Box sx={{ flex: 1, py: 4 }}>
+            <Container maxWidth="lg">
+              <Stack
+                spacing={4}
+                alignItems="center"
+                justifyContent="center"
+                sx={{ minHeight: "50vh" }}
+              >
+                <CircularProgress />
+                <Typography color="text.secondary">Loading...</Typography>
+              </Stack>
+            </Container>
+          </Box>
         </Box>
       </ThemeWrapper>
     );
@@ -221,23 +223,28 @@ export default function GenerationsPage() {
         <Box
           sx={{
             minHeight: "100vh",
-            background:
-              "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
-            py: 4,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Container maxWidth="lg">
-            <Stack
-              spacing={4}
-              alignItems="center"
-              justifyContent="center"
-              sx={{ minHeight: "50vh" }}
-            >
-              <Typography variant="h4" color="text.primary" textAlign="center">
-                Please log in to view your generations
-              </Typography>
-            </Stack>
-          </Container>
+          <Box sx={{ flex: 1, py: 4 }}>
+            <Container maxWidth="lg">
+              <Stack
+                spacing={4}
+                alignItems="center"
+                justifyContent="center"
+                sx={{ minHeight: "50vh" }}
+              >
+                <Typography
+                  variant="h4"
+                  color="text.primary"
+                  textAlign="center"
+                >
+                  Please log in to view your generations
+                </Typography>
+              </Stack>
+            </Container>
+          </Box>
         </Box>
       </ThemeWrapper>
     );
@@ -248,111 +255,117 @@ export default function GenerationsPage() {
       <Box
         sx={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
-          py: 4,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <Container maxWidth="lg">
-          <Stack spacing={4}>
-            {/* Top reference for scrolling */}
-            <div ref={topRef} />
+        <Box sx={{ flex: 1, py: 4 }}>
+          <Container maxWidth="lg">
+            <Stack spacing={4}>
+              {/* Top reference for scrolling */}
+              <div ref={topRef} />
 
-            {/* Header */}
-            <Box sx={{ textAlign: "center" }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="center"
-                spacing={2}
-                sx={{ mb: 2 }}
-              >
-                <HistoryIcon sx={{ fontSize: 40, color: "primary.main" }} />
-                <Typography variant="h3" fontWeight={700} color="text.primary">
-                  Your Generations
-                </Typography>
-              </Stack>
-              <Typography variant="body1" color="text.secondary">
-                View and manage your AI-generated car scenes
-              </Typography>
-            </Box>
-
-            {/* Content */}
-            {loading ? (
-              <Stack spacing={3} alignItems="center" sx={{ py: 8 }}>
-                <CircularProgress size={60} />
-                <Typography color="text.secondary">
-                  Loading your generations...
-                </Typography>
-              </Stack>
-            ) : error ? (
-              <Alert severity="error" sx={{ maxWidth: 600, mx: "auto" }}>
-                {error}
-              </Alert>
-            ) : generations.length === 0 ? (
-              <Box sx={{ textAlign: "center", py: 8 }}>
-                <AutoAwesomeIcon
-                  sx={{ fontSize: 80, color: "text.secondary", mb: 2 }}
-                />
-                <Typography variant="h5" color="text.secondary" gutterBottom>
-                  No generations yet
-                </Typography>
+              {/* Header */}
+              <Box sx={{ textAlign: "center" }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="center"
+                  spacing={2}
+                  sx={{ mb: 2 }}
+                >
+                  <HistoryIcon sx={{ fontSize: 40, color: "primary.main" }} />
+                  <Typography
+                    variant="h3"
+                    fontWeight={700}
+                    color="text.primary"
+                  >
+                    Your Generations
+                  </Typography>
+                </Stack>
                 <Typography variant="body1" color="text.secondary">
-                  Start by creating your first AI car scene
+                  View and manage your AI-generated car scenes
                 </Typography>
               </Box>
-            ) : (
-              <>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: {
-                      xs: "repeat(2, 1fr)",
-                      sm: "repeat(3, 1fr)",
-                      md: "repeat(4, 1fr)",
-                      lg: "repeat(5, 1fr)",
-                    },
-                    gap: { xs: 2, sm: 3 },
-                    mt: 2,
-                  }}
-                >
-                  {generations.map((generation) => (
-                    <Box
-                      key={generation.id}
-                      onClick={() => {
-                        setSelectedGeneration(generation);
-                        setModalOpen(true);
-                      }}
-                      sx={{ cursor: "pointer" }}
-                    >
-                      <GenerationGalleryItem generation={generation} />
-                    </Box>
-                  ))}
+
+              {/* Content */}
+              {loading ? (
+                <Stack spacing={3} alignItems="center" sx={{ py: 8 }}>
+                  <CircularProgress size={60} />
+                  <Typography color="text.secondary">
+                    Loading your generations...
+                  </Typography>
+                </Stack>
+              ) : error ? (
+                <Alert severity="error" sx={{ maxWidth: 600, mx: "auto" }}>
+                  {error}
+                </Alert>
+              ) : generations.length === 0 ? (
+                <Box sx={{ textAlign: "center", py: 8 }}>
+                  <AutoAwesomeIcon
+                    sx={{ fontSize: 80, color: "text.secondary", mb: 2 }}
+                  />
+                  <Typography variant="h5" color="text.secondary" gutterBottom>
+                    No generations yet
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    Start by creating your first AI car scene
+                  </Typography>
                 </Box>
-                {hasMore && (
+              ) : (
+                <>
                   <Box
-                    sx={{ display: "flex", justifyContent: "center", mt: 4 }}
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "repeat(2, 1fr)",
+                        sm: "repeat(3, 1fr)",
+                        md: "repeat(4, 1fr)",
+                        lg: "repeat(5, 1fr)",
+                      },
+                      gap: { xs: 2, sm: 3 },
+                      mt: 2,
+                    }}
                   >
-                    <Button
-                      variant="outlined"
-                      onClick={() => fetchGenerations(page + 1, true)}
-                      disabled={loadingMore}
-                      sx={{ minWidth: 160, minHeight: 44, fontWeight: 600 }}
-                    >
-                      {loadingMore ? "Loading..." : "Load More"}
-                    </Button>
+                    {generations.map((generation) => (
+                      <Box
+                        key={generation.id}
+                        onClick={() => {
+                          setSelectedGeneration(generation);
+                          setModalOpen(true);
+                        }}
+                        sx={{ cursor: "pointer" }}
+                      >
+                        <GenerationGalleryItem generation={generation} />
+                      </Box>
+                    ))}
                   </Box>
-                )}
-                <GenerationModal
-                  open={modalOpen}
-                  onClose={() => setModalOpen(false)}
-                  generation={selectedGeneration}
-                  onRevisionComplete={handleRevisionComplete}
-                />
-              </>
-            )}
-          </Stack>
-        </Container>
+                  {hasMore && (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", mt: 4 }}
+                    >
+                      <Button
+                        variant="outlined"
+                        onClick={() => fetchGenerations(page + 1, true)}
+                        disabled={loadingMore}
+                        sx={{ minWidth: 160, minHeight: 44, fontWeight: 600 }}
+                      >
+                        {loadingMore ? "Loading..." : "Load More"}
+                      </Button>
+                    </Box>
+                  )}
+                  <GenerationModal
+                    open={modalOpen}
+                    onClose={() => setModalOpen(false)}
+                    generation={selectedGeneration}
+                    onRevisionComplete={handleRevisionComplete}
+                  />
+                </>
+              )}
+            </Stack>
+          </Container>
+        </Box>
+        <Footer />
       </Box>
     </ThemeWrapper>
   );

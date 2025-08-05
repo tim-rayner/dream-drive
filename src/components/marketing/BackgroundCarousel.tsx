@@ -2,7 +2,7 @@
 
 import { ChevronRight } from "@mui/icons-material";
 import { Box, IconButton } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface SlideData {
   id: number;
@@ -68,54 +68,98 @@ interface BackgroundCarouselProps {
 export default function BackgroundCarousel({
   onSlideChange,
 }: BackgroundCarouselProps) {
-  const [index, setIndex] = useState(0);
-  const [fadeState, setFadeState] = useState("in");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [nextIndex, setNextIndex] = useState(1);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionProgress, setTransitionProgress] = useState(0);
+
+  const handleTransition = useCallback(() => {
+    if (isTransitioning) return;
+
+    const newNextIndex = (currentIndex + 1) % slides.length;
+    setIsTransitioning(true);
+    setNextIndex(newNextIndex);
+
+    // Animate the transition
+    const duration = 1500; // 1.5 seconds
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      setTransitionProgress(progress);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Transition complete - update all states atomically
+        setCurrentIndex(newNextIndex);
+        setTransitionProgress(0);
+        setIsTransitioning(false);
+        onSlideChange?.(slides[newNextIndex]);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [currentIndex, isTransitioning, onSlideChange]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setFadeState("out");
-      setTimeout(() => {
-        const newIndex = (index + 1) % slides.length;
-        setIndex(newIndex);
-        setFadeState("in");
-        onSlideChange?.(slides[newIndex]);
-      }, 750);
+      handleTransition();
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [index, onSlideChange]);
+  }, [handleTransition]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "ArrowRight") {
-        handleNext();
+        handleTransition();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [currentIndex]);
 
-  const handleNext = () => {
-    setFadeState("out");
-    setTimeout(() => {
-      const newIndex = (index + 1) % slides.length;
-      setIndex(newIndex);
-      setFadeState("in");
-      onSlideChange?.(slides[newIndex]);
-    }, 750);
-  };
+  const handleDotClick = useCallback(
+    (newIndex: number) => {
+      if (newIndex === currentIndex || isTransitioning) return;
 
-  const handleDotClick = (newIndex: number) => {
-    if (newIndex === index) return;
-    setFadeState("out");
-    setTimeout(() => {
-      setIndex(newIndex);
-      setFadeState("in");
-      onSlideChange?.(slides[newIndex]);
-    }, 750);
-  };
+      setIsTransitioning(true);
+      setNextIndex(newIndex);
+
+      // Animate the transition
+      const duration = 1500; // 1.5 seconds
+      const startTime = Date.now();
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        setTransitionProgress(progress);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Transition complete - update all states atomically
+          setCurrentIndex(newIndex);
+          setTransitionProgress(0);
+          setIsTransitioning(false);
+          onSlideChange?.(slides[newIndex]);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    },
+    [currentIndex, isTransitioning, onSlideChange]
+  );
+
+  const handleNext = useCallback(() => {
+    handleTransition();
+  }, [handleTransition]);
 
   return (
     <Box
@@ -124,7 +168,7 @@ export default function BackgroundCarousel({
       role="region"
       aria-label="Background image carousel"
     >
-      {/* Full-width Background Image */}
+      {/* Current Background Image */}
       <Box
         sx={{
           position: "absolute",
@@ -132,12 +176,27 @@ export default function BackgroundCarousel({
           left: 0,
           width: "100%",
           height: "100%",
-          backgroundImage: `url(${slides[index].imageUrl})`,
+          backgroundImage: `url(${slides[currentIndex].imageUrl})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: fadeState === "in" ? 1 : 0,
-          transition: "opacity 1.5s ease-in-out",
+          opacity: isTransitioning ? 1 - transitionProgress : 1,
           zIndex: 1,
+        }}
+      />
+
+      {/* Next Background Image (always rendered but only visible during transitions) */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          backgroundImage: `url(${slides[nextIndex].imageUrl})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: isTransitioning ? transitionProgress : 0,
+          zIndex: 2,
         }}
       />
 
@@ -159,19 +218,23 @@ export default function BackgroundCarousel({
             key={dotIndex}
             onClick={() => handleDotClick(dotIndex)}
             role="tab"
-            aria-selected={dotIndex === index}
+            aria-selected={dotIndex === currentIndex}
             aria-label={`Go to slide ${dotIndex + 1}`}
             sx={{
               width: { xs: 8, md: 12 },
               height: { xs: 8, md: 12 },
               borderRadius: "50%",
               backgroundColor:
-                dotIndex === index ? "#8B5CF6" : "rgba(255, 255, 255, 0.5)",
+                dotIndex === currentIndex
+                  ? "#8B5CF6"
+                  : "rgba(255, 255, 255, 0.5)",
               cursor: "pointer",
               transition: "all 0.3s ease",
               "&:hover": {
                 backgroundColor:
-                  dotIndex === index ? "#7C3AED" : "rgba(255, 255, 255, 0.7)",
+                  dotIndex === currentIndex
+                    ? "#7C3AED"
+                    : "rgba(255, 255, 255, 0.7)",
                 transform: "scale(1.1)",
               },
             }}
@@ -193,11 +256,15 @@ export default function BackgroundCarousel({
         <IconButton
           onClick={handleNext}
           aria-label="Next image"
+          disabled={isTransitioning}
           sx={{
             backgroundColor: "rgba(0, 0, 0, 0.3)",
             color: "#fff",
             "&:hover": {
               backgroundColor: "rgba(0, 0, 0, 0.5)",
+            },
+            "&:disabled": {
+              opacity: 0.5,
             },
             backdropFilter: "blur(10px)",
           }}

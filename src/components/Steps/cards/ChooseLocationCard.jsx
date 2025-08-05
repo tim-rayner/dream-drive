@@ -32,6 +32,7 @@ const ChooseLocationCard = ({
         maxWidth: { xs: "100%", sm: 400, md: 420, lg: 400 },
         display: "flex",
         flexDirection: "column",
+        backdropFilter: "blur(10px)",
       }}
     >
       <motion.div

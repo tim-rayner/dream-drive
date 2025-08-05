@@ -13,7 +13,7 @@ export default function Hero() {
     header: "Create Your Dream Drive",
     bodyText:
       "Upload your car photo, choose any location in the world, and watch AI place your car in that cinematic scene.",
-    ctaText: "Sign in with Google",
+    ctaText: "Start Creating Now",
   });
 
   const handleSlideChange = (slideData: SlideData) => {
@@ -40,7 +40,7 @@ export default function Hero() {
           width: { xs: "100%", sm: "100%", md: "45%" },
           height: "100%",
           backdropFilter: "blur(10px)",
-          backgroundColor: "rgba(0, 0, 0, 0.55)",
+          backgroundColor: "rgba(15, 15, 35, 0.85)",
           color: "#fff",
           display: "flex",
           flexDirection: "column",
@@ -57,6 +57,10 @@ export default function Hero() {
             fontSize: { xs: "2.5rem", sm: "3rem", md: "3.5rem" },
             mb: 3,
             lineHeight: 1.2,
+            background: "linear-gradient(135deg, #ffffff 0%, #E0E7FF 100%)",
+            backgroundClip: "text",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
           }}
         >
           {currentSlide.header}
@@ -69,6 +73,7 @@ export default function Hero() {
             opacity: 0.9,
             fontWeight: 400,
             lineHeight: 1.4,
+            color: "#E0E7FF",
           }}
         >
           {currentSlide.bodyText}

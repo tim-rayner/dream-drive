@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ClientProviders from "../components/ClientProviders";
-import Footer from "../components/Footer";
+import StarryBackground from "../components/StarryBackground";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,16 +31,18 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ClientProviders>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              minHeight: "100vh",
-            }}
-          >
-            <main style={{ flex: 1 }}>{children}</main>
-            <Footer />
-          </div>
+          <StarryBackground>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                minHeight: "100vh",
+              }}
+            >
+              <main style={{ flex: 1 }}>{children}</main>
+              {/* Footer is now handled within individual pages */}
+            </div>
+          </StarryBackground>
         </ClientProviders>
       </body>
     </html>

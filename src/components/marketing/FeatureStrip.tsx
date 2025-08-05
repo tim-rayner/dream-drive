@@ -34,7 +34,8 @@ export default function FeatureStrip() {
       sx={{
         py: 8,
         px: 4,
-        backgroundColor: "#111",
+        position: "relative",
+        zIndex: 2,
         color: "#fff",
       }}
     >
@@ -65,7 +66,7 @@ export default function FeatureStrip() {
               fontSize: { xs: "2.5rem", md: "3rem" },
               mb: 5,
               textAlign: { xs: "center", lg: "left" },
-              background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+              background: "linear-gradient(135deg, #ffffff 0%, #E0E7FF 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
@@ -98,7 +99,8 @@ export default function FeatureStrip() {
                   <feature.icon
                     sx={{
                       fontSize: 48,
-                      color: "primary.main",
+                      color: "#8B5CF6",
+                      filter: "drop-shadow(0 0 8px rgba(139, 92, 246, 0.5))",
                     }}
                   />
                 </Box>
@@ -122,6 +124,7 @@ export default function FeatureStrip() {
                     sx={{
                       mb: 1,
                       fontWeight: 600,
+                      color: "#E0E7FF",
                     }}
                   >
                     {feature.label}
@@ -134,6 +137,7 @@ export default function FeatureStrip() {
                       fontSize: { xs: "1rem", lg: "1.25rem" },
                       lineHeight: { xs: "1.5", lg: "1.75" },
                       maxWidth: { xs: "100%", lg: 400 },
+                      color: "#C7D2FE",
                     }}
                   >
                     {feature.description}
@@ -160,8 +164,9 @@ export default function FeatureStrip() {
               maxWidth: 500,
               borderRadius: 3,
               overflow: "hidden",
-              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
               aspectRatio: "16/9",
+              border: "1px solid rgba(139, 92, 246, 0.3)",
             }}
           >
             <iframe

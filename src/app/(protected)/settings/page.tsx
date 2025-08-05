@@ -1,6 +1,7 @@
 "use client";
 
 import ThemeWrapper from "@/components/ThemeWrapper";
+import Footer from "@/components/layout/Footer";
 import { supabase, useAuth } from "@/context/AuthContext";
 import { Refresh as RefreshIcon } from "@mui/icons-material";
 import {
@@ -157,22 +158,23 @@ export default function SettingsPage() {
         <Box
           sx={{
             minHeight: "100vh",
-            background:
-              "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
-            py: 4,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Container maxWidth="md">
-            <Stack
-              spacing={4}
-              alignItems="center"
-              justifyContent="center"
-              sx={{ minHeight: "50vh" }}
-            >
-              <CircularProgress />
-              <Typography color="text.secondary">Loading...</Typography>
-            </Stack>
-          </Container>
+          <Box sx={{ flex: 1, py: 4 }}>
+            <Container maxWidth="lg">
+              <Stack
+                spacing={4}
+                alignItems="center"
+                justifyContent="center"
+                sx={{ minHeight: "50vh" }}
+              >
+                <CircularProgress />
+                <Typography color="text.secondary">Loading...</Typography>
+              </Stack>
+            </Container>
+          </Box>
         </Box>
       </ThemeWrapper>
     );
@@ -185,30 +187,28 @@ export default function SettingsPage() {
         <Box
           sx={{
             minHeight: "100vh",
-            background:
-              "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
-            py: 4,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Container maxWidth="md">
-            <Stack
-              spacing={4}
-              alignItems="center"
-              justifyContent="center"
-              sx={{ minHeight: "50vh" }}
-            >
-              <Typography variant="h4" color="text.primary" textAlign="center">
-                Please log in to view your settings
-              </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => (window.location.href = "/")}
+          <Box sx={{ flex: 1, py: 4 }}>
+            <Container maxWidth="lg">
+              <Stack
+                spacing={4}
+                alignItems="center"
+                justifyContent="center"
+                sx={{ minHeight: "50vh" }}
               >
-                Go to Home
-              </Button>
-            </Stack>
-          </Container>
+                <Typography
+                  variant="h4"
+                  color="text.primary"
+                  textAlign="center"
+                >
+                  Please log in to view your settings
+                </Typography>
+              </Stack>
+            </Container>
+          </Box>
         </Box>
       </ThemeWrapper>
     );
@@ -219,110 +219,113 @@ export default function SettingsPage() {
       <Box
         sx={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 50%, #1E1E3F 100%)",
-          py: 4,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <Container maxWidth="md">
-          <Stack spacing={4} alignItems="center">
-            <Typography
-              variant="h3"
-              component="h1"
-              align="center"
-              sx={{
-                background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontWeight: 700,
-                mb: 2,
-              }}
-            >
-              User Settings
-            </Typography>
-            <Typography
-              variant="h6"
-              color="text.secondary"
-              align="center"
-              sx={{ mb: 2, maxWidth: 600 }}
-            >
-              View your credit purchase history below.
-            </Typography>
-            <Card sx={{ width: "100%", maxWidth: 900 }}>
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 2,
-                  }}
-                >
-                  <Box>
-                    <Typography variant="h6" fontWeight={600}>
-                      Purchase History
-                    </Typography>
-                    {lastUpdated && (
-                      <Typography variant="caption" color="text.secondary">
-                        Last updated: {lastUpdated.toLocaleTimeString()}
-                      </Typography>
-                    )}
-                  </Box>
-                  <Button
-                    onClick={() => fetchLogs(true)}
-                    disabled={loading || refreshing}
-                    startIcon={<RefreshIcon />}
-                    variant="outlined"
-                    size="small"
+        <Box sx={{ flex: 1, py: 4 }}>
+          <Container maxWidth="lg">
+            <Stack spacing={4} alignItems="center">
+              <Typography
+                variant="h3"
+                component="h1"
+                align="center"
+                sx={{
+                  background:
+                    "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 700,
+                  mb: 2,
+                }}
+              >
+                User Settings
+              </Typography>
+              <Typography
+                variant="h6"
+                color="text.secondary"
+                align="center"
+                sx={{ mb: 2, maxWidth: 600 }}
+              >
+                View your credit purchase history below.
+              </Typography>
+              <Card sx={{ width: "100%", maxWidth: 900 }}>
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 2,
+                    }}
                   >
-                    {refreshing ? "Refreshing..." : "Refresh"}
-                  </Button>
-                </Box>
-                {loading ? (
-                  <Stack alignItems="center" py={4}>
-                    <CircularProgress />
-                  </Stack>
-                ) : error ? (
-                  <Alert severity="error">{error}</Alert>
-                ) : logs.length === 0 ? (
-                  <Alert severity="info">No purchases found.</Alert>
-                ) : (
-                  <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Date & Time</TableCell>
-                          <TableCell>Credits</TableCell>
-                          <TableCell>Price</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {logs.map((log) => (
-                          <TableRow key={log.id}>
-                            <TableCell>
-                              {new Date(log.created_at).toLocaleString()}
-                            </TableCell>
-                            <TableCell>{log.amount}</TableCell>
-                            <TableCell>
-                              {log.price_amount
-                                ? `${
-                                    log.price_currency === "GBP"
-                                      ? "£"
-                                      : log.price_currency
-                                  }${log.price_amount.toFixed(2)}`
-                                : "Unknown"}
-                            </TableCell>
+                    <Box>
+                      <Typography variant="h6" fontWeight={600}>
+                        Purchase History
+                      </Typography>
+                      {lastUpdated && (
+                        <Typography variant="caption" color="text.secondary">
+                          Last updated: {lastUpdated.toLocaleTimeString()}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Button
+                      onClick={() => fetchLogs(true)}
+                      disabled={loading || refreshing}
+                      startIcon={<RefreshIcon />}
+                      variant="outlined"
+                      size="small"
+                    >
+                      {refreshing ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </Box>
+                  {loading ? (
+                    <Stack alignItems="center" py={4}>
+                      <CircularProgress />
+                    </Stack>
+                  ) : error ? (
+                    <Alert severity="error">{error}</Alert>
+                  ) : logs.length === 0 ? (
+                    <Alert severity="info">No purchases found.</Alert>
+                  ) : (
+                    <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Date & Time</TableCell>
+                            <TableCell>Credits</TableCell>
+                            <TableCell>Price</TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </CardContent>
-            </Card>
-          </Stack>
-        </Container>
+                        </TableHead>
+                        <TableBody>
+                          {logs.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell>
+                                {new Date(log.created_at).toLocaleString()}
+                              </TableCell>
+                              <TableCell>{log.amount}</TableCell>
+                              <TableCell>
+                                {log.price_amount
+                                  ? `${
+                                      log.price_currency === "GBP"
+                                        ? "£"
+                                        : log.price_currency
+                                    }${log.price_amount.toFixed(2)}`
+                                  : "Unknown"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </Stack>
+          </Container>
+        </Box>
+        <Footer />
       </Box>
     </ThemeWrapper>
   );
