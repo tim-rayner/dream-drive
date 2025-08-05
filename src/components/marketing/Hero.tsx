@@ -24,8 +24,9 @@ export default function Hero() {
     <Box
       sx={{
         position: "relative",
-        height: { xs: "90vh", sm: "90vh", md: "75vh" },
+        height: { xs: "90vh", sm: "100vh" },
         overflow: "hidden",
+        width: "100%",
       }}
     >
       {/* Full-width Background Carousel */}

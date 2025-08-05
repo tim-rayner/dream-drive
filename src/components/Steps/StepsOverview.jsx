@@ -268,7 +268,6 @@ const StepsOverview = () => {
                             position: "relative",
                             width: "100%",
                             height: "auto",
-                            maxHeight: "550px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",

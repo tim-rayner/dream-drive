@@ -170,7 +170,7 @@ export default function FeatureStrip() {
             }}
           >
             <iframe
-              src="https://www.youtube.com/embed/UqdnzPw1zhU?rel=0&modestbranding=1"
+              src="https://www.youtube.com/embed/w79lNlycAfc?si=f3OlZ8Ta343QpmTE?rel=0&modestbranding=1"
               title="Dream Drive Demo"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

@@ -748,7 +748,6 @@ export default function GenerateImageStep({
                   sx={{
                     position: "relative",
                     width: "100%",
-                    maxHeight: "550px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
