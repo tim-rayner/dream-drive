@@ -43,6 +43,16 @@ body {
   }
 }
 
+/* Shimmer animation for most popular button */
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
 /* Global starry background for unauthenticated pages */
 .starry-background {
   background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #1e1e3f 100%);

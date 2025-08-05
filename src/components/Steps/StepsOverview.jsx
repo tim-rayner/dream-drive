@@ -251,16 +251,31 @@ const StepsOverview = () => {
                         mx: { xs: 2, sm: 0 },
                       }}
                     >
-                      <CardContent sx={{ p: 0 }}>
+                      <CardContent
+                        sx={{
+                          p: 0,
+                          "&:last-child": { pb: 0 },
+                          height: "auto",
+                          m: 0,
+                          "&.MuiCardContent-root": {
+                            padding: 0,
+                            margin: 0,
+                          },
+                        }}
+                      >
                         <Box
                           sx={{
                             position: "relative",
                             width: "100%",
                             height: "auto",
+                            maxHeight: "550px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             backgroundColor: "background.paper",
+                            objectFit: "contain",
+                            m: 0,
+                            p: 0,
                           }}
                         >
                           <img
@@ -270,7 +285,9 @@ const StepsOverview = () => {
                               width: "100%",
                               height: "auto",
                               display: "block",
-                              objectFit: "cover",
+                              objectFit: "contain",
+                              margin: 0,
+                              padding: 0,
                             }}
                           />
                           <Box
@@ -319,11 +336,101 @@ const StepsOverview = () => {
                       <Button
                         variant="contained"
                         size="large"
-                        onClick={() => {
-                          const link = document.createElement("a");
-                          link.href = generatedImageUrl;
-                          link.download = "dream-drive-scene.jpg";
-                          link.click();
+                        onClick={async () => {
+                          try {
+                            console.log(
+                              "Attempting to download:",
+                              generatedImageUrl
+                            );
+
+                            // Try to fetch with credentials and proper headers
+                            const response = await fetch(generatedImageUrl, {
+                              method: "GET",
+                              mode: "cors",
+                              credentials: "omit",
+                              headers: {
+                                Accept: "image/*",
+                              },
+                            });
+
+                            if (!response.ok) {
+                              throw new Error(
+                                `HTTP error! status: ${response.status}`
+                              );
+                            }
+
+                            const blob = await response.blob();
+                            console.log("Blob created, size:", blob.size);
+
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            console.log("Blob URL created:", blobUrl);
+
+                            const link = document.createElement("a");
+                            link.href = blobUrl;
+                            link.download = "dream-drive-scene.jpg";
+                            link.style.display = "none"; // Hide the link
+
+                            document.body.appendChild(link);
+                            link.click();
+
+                            // Clean up
+                            setTimeout(() => {
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(blobUrl);
+                            }, 100);
+
+                            console.log("Download initiated successfully");
+                          } catch (error) {
+                            console.error("Error downloading image:", error);
+
+                            // Alternative approach: try to force download with a different method
+                            try {
+                              const canvas = document.createElement("canvas");
+                              const ctx = canvas.getContext("2d");
+                              const img = new Image();
+
+                              img.crossOrigin = "anonymous";
+                              img.onload = () => {
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                ctx.drawImage(img, 0, 0);
+
+                                canvas.toBlob(
+                                  (blob) => {
+                                    const url =
+                                      window.URL.createObjectURL(blob);
+                                    const link = document.createElement("a");
+                                    link.href = url;
+                                    link.download = "dream-drive-scene.jpg";
+                                    link.style.display = "none";
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(url);
+                                  },
+                                  "image/jpeg",
+                                  0.9
+                                );
+                              };
+
+                              img.onerror = () => {
+                                console.error(
+                                  "Failed to load image for canvas method"
+                                );
+                                // Final fallback - open in new tab
+                                window.open(generatedImageUrl, "_blank");
+                              };
+
+                              img.src = generatedImageUrl;
+                            } catch (canvasError) {
+                              console.error(
+                                "Canvas method failed:",
+                                canvasError
+                              );
+                              // Final fallback - open in new tab
+                              window.open(generatedImageUrl, "_blank");
+                            }
+                          }
                         }}
                         sx={{
                           py: { xs: 1.5, sm: 2 },

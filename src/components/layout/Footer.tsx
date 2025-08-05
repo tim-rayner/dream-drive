@@ -23,104 +23,33 @@ export default function Footer() {
         backdropFilter: "blur(10px)",
         borderTop: "1px solid rgba(255, 255, 255, 0.1)",
         py: { xs: 3, sm: 4 },
-        mt: 0, // Remove margin top to eliminate gap
         position: "relative",
         zIndex: 2,
       }}
     >
       <Container maxWidth="lg">
         <Stack
-          spacing={{ xs: 3, sm: 4 }}
+          gap={3}
           alignItems={{ xs: "center", sm: "flex-start" }}
           textAlign={{ xs: "center", sm: "left" }}
         >
           {/* Brand */}
           <Box>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-                mb: 2,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 24,
-                  height: 24,
-                  position: "relative",
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gridTemplateRows: "1fr 1fr",
-                  gap: 0.5,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "1px",
-                  }}
-                />
-                <Box
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "1px",
-                  }}
-                />
-                <Box
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "1px",
-                  }}
-                />
-                <Box
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "1px",
-                  }}
-                />
-              </Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: "#ffffff",
-                  fontWeight: 600,
-                }}
-              >
-                DriveDream
-              </Typography>
-            </Box>
             <Typography
-              variant="body2"
+              variant="h6"
+              component="h2"
               sx={{
-                fontSize: { xs: "0.875rem", sm: "1rem" },
-                lineHeight: 1.5,
-                color: "rgba(255, 255, 255, 0.8)",
-                mb: 2,
+                background: "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                backgroundClip: "text",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontWeight: 700,
+                fontSize: { xs: "1.125rem", sm: "1.25rem" },
               }}
             >
-              A sleek and modern AI platform designed to help car enthusiasts
-              and businesses create stunning automotive photography with
-              artificial intelligence.
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: "rgba(255, 255, 255, 0.6)",
-              }}
-            >
-              © 2024 DriveDream AI. All rights reserved.
+              DriveDream
             </Typography>
           </Box>
-
           {/* Links */}
           <nav aria-label="Footer navigation">
             <Stack

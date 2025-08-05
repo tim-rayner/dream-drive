@@ -47,6 +47,7 @@ const UploadArea = styled(Paper, {
     borderColor: theme.palette.primary.main,
     backgroundColor: "rgba(139, 92, 246, 0.05)",
   },
+  backdropFilter: "blur(10px)",
 }));
 
 const FilePreview = styled(Box)(({ theme }) => ({

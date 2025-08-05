@@ -161,7 +161,7 @@ export default function FeatureStrip() {
             sx={{
               position: "relative",
               width: "100%",
-              maxWidth: 500,
+              maxWidth: { xs: 400, md: 600 },
               borderRadius: 3,
               overflow: "hidden",
               boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",

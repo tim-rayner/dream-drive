@@ -729,18 +729,32 @@ export default function GenerateImageStep({
                 border: "2px solid",
                 borderColor: "primary.main",
                 boxShadow: "0 8px 32px rgba(139, 92, 246, 0.3)",
+                height: "auto",
               }}
             >
-              <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <CardContent
+                sx={{
+                  p: 0,
+                  "&:last-child": { pb: 0 },
+                  height: "auto",
+                  m: 0,
+                  "&.MuiCardContent-root": {
+                    padding: 0,
+                    margin: 0,
+                  },
+                }}
+              >
                 <Box
                   sx={{
                     position: "relative",
                     width: "100%",
-                    height: "auto",
+                    maxHeight: "550px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor: "background.paper",
+                    m: 0,
+                    p: 0,
                   }}
                 >
                   <Image
@@ -752,6 +766,10 @@ export default function GenerateImageStep({
                     style={{
                       display: "block",
                       objectFit: "cover",
+                      width: "100%",
+                      height: "auto",
+                      margin: 0,
+                      padding: 0,
                     }}
                   />
                   <Box

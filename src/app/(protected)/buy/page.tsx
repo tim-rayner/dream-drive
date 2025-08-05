@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Container,
   Snackbar,
@@ -185,103 +186,174 @@ function BuyCreditsContent() {
                 },
                 gap: 3,
                 mt: 2,
+                pt: 4, // Add top padding to accommodate the chip overflow
+                position: "relative",
               }}
             >
-              {CREDIT_PACKS.map((pack) => (
-                <Card
-                  key={pack.priceId}
-                  sx={{
-                    background: "rgba(255, 255, 255, 0.03)",
-                    backdropFilter: "blur(10px)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    transition: "all 0.3s ease",
-                    cursor: "pointer",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      borderColor: "rgba(139, 92, 246, 0.3)",
-                      boxShadow: "0 8px 32px rgba(139, 92, 246, 0.2)",
-                    },
-                  }}
-                  onClick={() => handleBuyCredits(pack.priceId)}
-                >
-                  <CardContent>
-                    <Stack spacing={2}>
-                      <Box>
-                        <Typography
-                          variant="h5"
-                          component="h2"
-                          fontWeight={700}
-                          color="text.primary"
-                          sx={{ mb: 0.5 }}
-                        >
-                          {pack.name}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 1 }}
-                        >
-                          {pack.description}
-                        </Typography>
-                      </Box>
+              {CREDIT_PACKS.map((pack) => {
+                const isMostPopular = pack.description === "Most popular";
 
-                      <Box>
-                        <Typography
-                          variant="h4"
-                          component="div"
-                          fontWeight={700}
+                return (
+                  <Card
+                    key={pack.priceId}
+                    sx={{
+                      background: isMostPopular
+                        ? "linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%)"
+                        : "rgba(255, 255, 255, 0.03)",
+                      backdropFilter: "blur(10px)",
+                      border: isMostPopular
+                        ? "2px solid rgba(139, 92, 246, 0.3)"
+                        : "1px solid rgba(255, 255, 255, 0.1)",
+                      transition: "all 0.3s ease",
+                      cursor: "pointer",
+                      transform: isMostPopular ? "scale(1.02)" : "scale(1)",
+                      overflow: "visible",
+                      "&:hover": {
+                        transform: isMostPopular
+                          ? "translateY(-6px) scale(1.02)"
+                          : "translateY(-4px)",
+                        borderColor: isMostPopular
+                          ? "rgba(139, 92, 246, 0.5)"
+                          : "rgba(139, 92, 246, 0.3)",
+                        boxShadow: isMostPopular
+                          ? "0 12px 40px rgba(139, 92, 246, 0.3)"
+                          : "0 8px 32px rgba(139, 92, 246, 0.2)",
+                      },
+                    }}
+                    onClick={() => handleBuyCredits(pack.priceId)}
+                  >
+                    {/* Popular Badge */}
+                    {isMostPopular && (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: -16,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          zIndex: 102,
+                          pointerEvents: "none",
+                          overflow: "visible",
+                        }}
+                      >
+                        <Chip
+                          label="MOST POPULAR"
+                          size="small"
                           sx={{
                             background:
                               "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
-                            backgroundClip: "text",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            mb: 0.5,
+                            color: "white",
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                            px: 1,
+                            boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
+                            "& .MuiChip-label": {
+                              px: 1,
+                            },
+                          }}
+                        />
+                      </Box>
+                    )}
+
+                    <CardContent>
+                      <Stack spacing={2}>
+                        <Box>
+                          <Typography
+                            variant="h5"
+                            component="h2"
+                            fontWeight={700}
+                            color="text.primary"
+                            sx={{ mb: 0.5 }}
+                          >
+                            {pack.name}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 1 }}
+                          >
+                            {pack.description}
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Typography
+                            variant="h4"
+                            component="div"
+                            fontWeight={700}
+                            sx={{
+                              background:
+                                "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                              backgroundClip: "text",
+                              WebkitBackgroundClip: "text",
+                              WebkitTextFillColor: "transparent",
+                              mb: 0.5,
+                            }}
+                          >
+                            {pack.price}
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            color="text.secondary"
+                            sx={{ mb: 2 }}
+                          >
+                            {pack.credits} credit{pack.credits !== 1 ? "s" : ""}
+                          </Typography>
+                        </Box>
+
+                        <Button
+                          variant="contained"
+                          size="large"
+                          fullWidth
+                          disabled={loading === pack.priceId}
+                          sx={{
+                            background: isMostPopular
+                              ? "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)"
+                              : "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
+                            color: "white",
+                            fontWeight: 600,
+                            py: 1.5,
+                            position: "relative",
+                            overflow: "hidden",
+                            "&::before": isMostPopular
+                              ? {
+                                  content: '""',
+                                  position: "absolute",
+                                  top: 0,
+                                  left: "-100%",
+                                  width: "100%",
+                                  height: "100%",
+                                  background:
+                                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+                                  animation: "shimmer 2s infinite",
+                                }
+                              : {},
+                            "&:hover": {
+                              background: isMostPopular
+                                ? "linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)"
+                                : "linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)",
+                              transform: isMostPopular
+                                ? "translateY(-3px)"
+                                : "translateY(-2px)",
+                              boxShadow: isMostPopular
+                                ? "0 10px 30px rgba(139, 92, 246, 0.4)"
+                                : "0 8px 25px rgba(139, 92, 246, 0.3)",
+                            },
+                            "&:disabled": {
+                              opacity: 0.7,
+                            },
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBuyCredits(pack.priceId);
                           }}
                         >
-                          {pack.price}
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          color="text.secondary"
-                          sx={{ mb: 2 }}
-                        >
-                          {pack.credits} credit{pack.credits !== 1 ? "s" : ""}
-                        </Typography>
-                      </Box>
-
-                      <Button
-                        variant="contained"
-                        size="large"
-                        fullWidth
-                        disabled={loading === pack.priceId}
-                        sx={{
-                          background:
-                            "linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
-                          color: "white",
-                          fontWeight: 600,
-                          py: 1.5,
-                          "&:hover": {
-                            background:
-                              "linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)",
-                            transform: "translateY(-2px)",
-                            boxShadow: "0 8px 25px rgba(139, 92, 246, 0.3)",
-                          },
-                          "&:disabled": {
-                            opacity: 0.7,
-                          },
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBuyCredits(pack.priceId);
-                        }}
-                      >
-                        {loading === pack.priceId ? "Redirecting..." : "Buy"}
-                      </Button>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              ))}
+                          {loading === pack.priceId ? "Redirecting..." : "Buy"}
+                        </Button>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </Box>
 
             {/* Info Section */}
