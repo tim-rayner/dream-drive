@@ -51,7 +51,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
               "connect-src 'self' https://api.replicate.com https://maps.googleapis.com https://accounts.google.com https://*.supabase.co https://places.googleapis.com",
-              "frame-src https://accounts.google.com",
+              "frame-src https://accounts.google.com https://www.youtube.com https://youtube.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
