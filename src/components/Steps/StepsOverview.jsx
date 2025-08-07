@@ -4,6 +4,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
+import VideocamIcon from "@mui/icons-material/Videocam";
 import {
   Alert,
   Box,
@@ -21,8 +22,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useCredits } from "../../context/CreditsContext";
 import RevisionCarousel from "../RevisionCarousel";
+import VideoPlayer from "../VideoPlayer";
 import ChooseLocationStep from "./ChooseLocationStep";
 import GenerateImageStep from "./GenerateImageStep";
+import GenerateVideoStep from "./GenerateVideoStep";
 import UploadPhotoStep from "./UploadPhotoStep";
 import ChooseLocationCard from "./cards/ChooseLocationCard";
 import GenerateImageCard from "./cards/GenerateImageCard";
@@ -38,6 +41,11 @@ const StepsOverview = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [sceneImage, setSceneImage] = useState(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState(null);
+  const [currentSelectedImageUrl, setCurrentSelectedImageUrl] = useState(null);
+  const [isVideoGenerationMode, setIsVideoGenerationMode] = useState(false);
+  const [carMake, setCarMake] = useState("");
+  const [carModel, setCarModel] = useState("");
   const [mapData, setMapData] = useState({
     position: null,
     marker: null,
@@ -90,6 +98,7 @@ const StepsOverview = () => {
   const handleGenerationComplete = useCallback(
     (imageUrl, generationId = null) => {
       setGeneratedImageUrl(imageUrl);
+      setCurrentSelectedImageUrl(imageUrl); // Set the initial selected image
       if (generationId) {
         setGenerationId(generationId);
         // Create a basic generation object for the original
@@ -102,6 +111,13 @@ const StepsOverview = () => {
       }
       setStepCompletion((prev) => ({ ...prev, 2: true }));
       setActiveStep(3);
+    },
+    []
+  );
+
+  const handleVideoGenerationComplete = useCallback(
+    (videoUrl, videoId = null) => {
+      setGeneratedVideoUrl(videoUrl);
     },
     []
   );
@@ -193,6 +209,11 @@ const StepsOverview = () => {
     setUploadedFile(null);
     setSceneImage(null);
     setGeneratedImageUrl(null);
+    setGeneratedVideoUrl(null);
+    setCurrentSelectedImageUrl(null);
+    setIsVideoGenerationMode(false);
+    setCarMake("");
+    setCarModel("");
     setMapData({ position: null, marker: null });
     setGenerationId(null);
     setOriginalGeneration(null);
@@ -316,307 +337,382 @@ const StepsOverview = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
           >
-            <Box sx={{ maxWidth: 1200, mx: "auto", width: "100%" }}>
-              <Stack spacing={4} sx={{ px: { xs: 2, sm: 0 } }} mx="auto">
-                {/* Header */}
-                <Box sx={{ textAlign: "center" }}>
+            {isVideoGenerationMode ? (
+              <GenerateVideoStep
+                onComplete={handleVideoGenerationComplete}
+                generatedImageUrl={currentSelectedImageUrl || generatedImageUrl}
+                originalGeneration={originalGeneration}
+                carMake={carMake}
+                carModel={carModel}
+                onBack={() => setIsVideoGenerationMode(false)}
+              />
+            ) : (
+              <Box sx={{ maxWidth: 1200, mx: "auto", width: "100%" }}>
+                <Stack spacing={4} sx={{ px: { xs: 2, sm: 0 } }} mx="auto">
+                  {/* Header */}
+                  <Box sx={{ textAlign: "center" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: { xs: "column", sm: "row" },
+                        alignItems: "center",
+                        justifyContent: "center",
+                        mb: 3,
+                        gap: { xs: 2, sm: 3 },
+                      }}
+                    >
+                      <CheckCircleIcon
+                        sx={{
+                          fontSize: { xs: 30, sm: 40 },
+                          color: "white",
+                        }}
+                      />
+
+                      <Typography
+                        variant="h4"
+                        component="h2"
+                        fontWeight={600}
+                        sx={{
+                          fontSize: {
+                            xs: "1.5rem",
+                            sm: "2rem",
+                            md: "2.125rem",
+                          },
+                        }}
+                      >
+                        Shoot Complete!
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="body1"
+                      color="text.secondary"
+                      sx={{ px: { xs: 2, sm: 0 } }}
+                    >
+                      Your AI-generated car scene is ready! Download, share, or
+                      refine your creation.
+                    </Typography>
+                  </Box>
+
+                  {/* Final Image Display */}
+                  {generatedImageUrl && originalGeneration && (
+                    <Box>
+                      <RevisionCarousel
+                        originalGeneration={originalGeneration}
+                        revisedGeneration={revisedGeneration}
+                        size={500}
+                        onImageChange={setCurrentSelectedImageUrl}
+                      />
+                    </Box>
+                  )}
+
+                  {/* Video Display */}
+                  {generatedVideoUrl && (
+                    <Box>
+                      <Typography
+                        variant="h5"
+                        fontWeight={600}
+                        sx={{ mb: 3, px: { xs: 2, sm: 0 } }}
+                      >
+                        Your Generated Video
+                      </Typography>
+                      <Box sx={{ maxWidth: 600, mx: "auto" }}>
+                        <VideoPlayer
+                          videoUrl={generatedVideoUrl}
+                          title="Dream Drive Video"
+                          onDownload={() => {
+                            const link = document.createElement("a");
+                            link.href = generatedVideoUrl;
+                            link.download = "dream-drive-video.mp4";
+                            link.click();
+                          }}
+                          width="100%"
+                          height={400}
+                        />
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* Revision Section */}
+                  {isRevisionEligible && generationId && (
+                    <Box>
+                      <Typography
+                        variant="h5"
+                        fontWeight={600}
+                        sx={{ mb: 3, px: { xs: 2, sm: 0 } }}
+                      >
+                        Refine Your Scene
+                      </Typography>
+
+                      {!user ? (
+                        <Alert
+                          severity="warning"
+                          sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
+                        >
+                          <Typography variant="body2">
+                            <strong>Login Required:</strong> You need to be
+                            logged in to use the free revision feature. Please
+                            log in to refine your scene.
+                          </Typography>
+                        </Alert>
+                      ) : (
+                        <>
+                          <Alert
+                            severity="info"
+                            sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
+                            icon={<RefreshIcon />}
+                          >
+                            <Typography variant="body2">
+                              <strong>Free Revision Available!</strong>
+                            </Typography>
+                            <Typography variant="body2">
+                              You can refine your scene once with different
+                              settings. Change the time of day, location, or add
+                              custom instructions.
+                            </Typography>
+                          </Alert>
+
+                          {/* Time of Day Selection */}
+                          <Box sx={{ mb: 3, px: { xs: 2, sm: 0 } }}>
+                            <Typography
+                              variant="h6"
+                              fontWeight={600}
+                              sx={{
+                                mb: 2,
+                                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                              }}
+                            >
+                              Time of Day
+                            </Typography>
+                            <ToggleButtonGroup
+                              value={revisionData.timeOfDay}
+                              exclusive
+                              onChange={(_, newValue) => {
+                                if (newValue !== null) {
+                                  setRevisionData((prev) => ({
+                                    ...prev,
+                                    timeOfDay: newValue,
+                                  }));
+                                }
+                              }}
+                              aria-label="time of day"
+                              sx={{
+                                flexWrap: "wrap",
+                                width: "100%",
+                                justifyContent: {
+                                  xs: "center",
+                                  sm: "flex-start",
+                                },
+                                gap: { xs: 1, sm: 2 },
+                                "& .MuiToggleButton-root": {
+                                  borderRadius: "12px",
+                                  px: { xs: 2, sm: 3 },
+                                  py: { xs: 1, sm: 1.5 },
+                                  textTransform: "none",
+                                  fontWeight: 600,
+                                  border: "2px solid",
+                                  borderColor: "divider",
+                                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                                  "&.Mui-selected": {
+                                    backgroundColor: "primary.main",
+                                    color: "white",
+                                    borderColor: "primary.main",
+                                    "&:hover": {
+                                      backgroundColor: "primary.dark",
+                                    },
+                                  },
+                                  "&:hover": {
+                                    backgroundColor: "grey.100",
+                                  },
+                                  flex: "1 1 120px",
+                                  minWidth: { xs: "45%", sm: "auto" },
+                                  maxWidth: { xs: "100%", sm: "none" },
+                                },
+                              }}
+                            >
+                              <ToggleButton
+                                value="sunrise"
+                                aria-label="sunrise"
+                              >
+                                Sunrise
+                              </ToggleButton>
+                              <ToggleButton
+                                value="afternoon"
+                                aria-label="afternoon"
+                              >
+                                Afternoon
+                              </ToggleButton>
+                              <ToggleButton value="dusk" aria-label="dusk">
+                                Dusk
+                              </ToggleButton>
+                              <ToggleButton value="night" aria-label="night">
+                                Night
+                              </ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+
+                          {/* Custom Instructions Input */}
+                          <Box sx={{ mb: 3, px: { xs: 2, sm: 0 } }}>
+                            <TextField
+                              label="Optional: Add extra details for the AI (e.g. mood, background elements, weather...)"
+                              multiline
+                              minRows={2}
+                              maxRows={6}
+                              value={revisionData.customInstructions}
+                              onChange={(e) =>
+                                setRevisionData((prev) => ({
+                                  ...prev,
+                                  customInstructions: e.target.value,
+                                }))
+                              }
+                              variant="outlined"
+                              fullWidth
+                            />
+                          </Box>
+
+                          {/* Revision Error */}
+                          {revisionError && (
+                            <Alert
+                              severity="error"
+                              sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
+                            >
+                              <Typography variant="body2">
+                                {revisionError}
+                              </Typography>
+                            </Alert>
+                          )}
+
+                          {/* Revision Button */}
+                          <Box sx={{ px: { xs: 2, sm: 0 } }}>
+                            <Button
+                              variant="contained"
+                              size="large"
+                              fullWidth
+                              disabled={revisionLoading || !generationId}
+                              onClick={handleRevisionRequest}
+                              sx={{
+                                py: { xs: 1.5, sm: 2 },
+                                borderRadius: "12px",
+                                fontSize: { xs: "1rem", sm: "1.1rem" },
+                                fontWeight: 600,
+                                textTransform: "none",
+                                background:
+                                  "linear-gradient(45deg, #8B5CF6 30%, #A78BFA 90%)",
+                                boxShadow:
+                                  "0 3px 5px 2px rgba(139, 92, 246, .3)",
+                                "&:hover": {
+                                  background:
+                                    "linear-gradient(45deg, #7C3AED 30%, #8B5CF6 90%)",
+                                },
+                                "&:disabled": {
+                                  background: "grey.500",
+                                  boxShadow: "none",
+                                },
+                              }}
+                            >
+                              {revisionLoading ? (
+                                <>
+                                  <CircularProgress
+                                    size={20}
+                                    sx={{ mr: 1, color: "white" }}
+                                  />
+                                  Generating Revision...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshIcon sx={{ mr: 1 }} />
+                                  Generate Free Revision
+                                </>
+                              )}
+                            </Button>
+                          </Box>
+                        </>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Revision Used Message */}
+                  {!isRevisionEligible && generationId && (
+                    <Box sx={{ px: { xs: 2, sm: 0 } }}>
+                      <Alert
+                        severity="success"
+                        sx={{ mb: 3 }}
+                        gap={1}
+                        icon={<CheckCircleIcon />}
+                      >
+                        <Typography variant="body2">
+                          <strong>Revision Complete!</strong>
+                        </Typography>
+                        <Typography variant="body2">
+                          Your scene has been refined. You can download the new
+                          version or create a new scene.
+                        </Typography>
+                      </Alert>
+                    </Box>
+                  )}
+
+                  {/* Action Buttons */}
                   <Box
                     sx={{
+                      mt: 4,
                       display: "flex",
-                      flexDirection: { xs: "column", sm: "row" },
-                      alignItems: "center",
                       justifyContent: "center",
-                      mb: 3,
+                      px: { xs: 2, sm: 0 },
                       gap: { xs: 2, sm: 3 },
                     }}
                   >
-                    <CheckCircleIcon
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      onClick={handleReset}
                       sx={{
-                        fontSize: { xs: 30, sm: 40 },
-                        color: "white",
+                        py: { xs: 1.5, sm: 2 },
+                        px: { xs: 3, sm: 4 },
+                        borderRadius: "12px",
+                        fontSize: { xs: "1rem", sm: "1.1rem" },
+                        fontWeight: 600,
+                        textTransform: "none",
+                        borderColor: "primary.main",
+                        color: "primary.main",
+                        "&:hover": {
+                          borderColor: "primary.dark",
+                          backgroundColor: "primary.main",
+                          color: "white",
+                        },
                       }}
-                    />
-
-                    <Typography
-                      variant="h4"
-                      component="h2"
-                      fontWeight={600}
-                      sx={{
-                        fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
-                      }}
+                      startIcon={<RefreshIcon />}
                     >
-                      Shoot Complete!
-                    </Typography>
-                  </Box>
-                  <Typography
-                    variant="body1"
-                    color="text.secondary"
-                    sx={{ px: { xs: 2, sm: 0 } }}
-                  >
-                    Your AI-generated car scene is ready! Download, share, or
-                    refine your creation.
-                  </Typography>
-                </Box>
-
-                {/* Final Image Display */}
-                {generatedImageUrl && originalGeneration && (
-                  <Box>
-                    <RevisionCarousel
-                      originalGeneration={originalGeneration}
-                      revisedGeneration={revisedGeneration}
-                      size={500}
-                    />
-                  </Box>
-                )}
-
-                {/* Revision Section */}
-                {isRevisionEligible && generationId && (
-                  <Box>
-                    <Typography
-                      variant="h5"
-                      fontWeight={600}
-                      sx={{ mb: 3, px: { xs: 2, sm: 0 } }}
-                    >
-                      Refine Your Scene
-                    </Typography>
-
-                    {!user ? (
-                      <Alert
-                        severity="warning"
-                        sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
+                      Create New Scene
+                    </Button>
+                    {!generatedVideoUrl && (
+                      <Button
+                        variant="contained"
+                        size="large"
+                        onClick={() => {
+                          setIsVideoGenerationMode(true);
+                        }}
+                        sx={{
+                          py: { xs: 1.5, sm: 2 },
+                          px: { xs: 3, sm: 4 },
+                          borderRadius: "12px",
+                          fontSize: { xs: "1rem", sm: "1.1rem" },
+                          fontWeight: 600,
+                          textTransform: "none",
+                          borderColor: "primary.main",
+                          color: "white",
+                          "&:hover": {
+                            borderColor: "primary.dark",
+                            backgroundColor: "primary.main",
+                          },
+                        }}
+                        startIcon={<VideocamIcon />}
                       >
-                        <Typography variant="body2">
-                          <strong>Login Required:</strong> You need to be logged
-                          in to use the free revision feature. Please log in to
-                          refine your scene.
-                        </Typography>
-                      </Alert>
-                    ) : (
-                      <>
-                        <Alert
-                          severity="info"
-                          sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
-                          icon={<RefreshIcon />}
-                        >
-                          <Typography variant="body2">
-                            <strong>Free Revision Available!</strong>
-                          </Typography>
-                          <Typography variant="body2">
-                            You can refine your scene once with different
-                            settings. Change the time of day, location, or add
-                            custom instructions.
-                          </Typography>
-                        </Alert>
-
-                        {/* Time of Day Selection */}
-                        <Box sx={{ mb: 3, px: { xs: 2, sm: 0 } }}>
-                          <Typography
-                            variant="h6"
-                            fontWeight={600}
-                            sx={{
-                              mb: 2,
-                              fontSize: { xs: "1.1rem", sm: "1.25rem" },
-                            }}
-                          >
-                            Time of Day
-                          </Typography>
-                          <ToggleButtonGroup
-                            value={revisionData.timeOfDay}
-                            exclusive
-                            onChange={(_, newValue) => {
-                              if (newValue !== null) {
-                                setRevisionData((prev) => ({
-                                  ...prev,
-                                  timeOfDay: newValue,
-                                }));
-                              }
-                            }}
-                            aria-label="time of day"
-                            sx={{
-                              flexWrap: "wrap",
-                              width: "100%",
-                              justifyContent: {
-                                xs: "center",
-                                sm: "flex-start",
-                              },
-                              gap: { xs: 1, sm: 2 },
-                              "& .MuiToggleButton-root": {
-                                borderRadius: "12px",
-                                px: { xs: 2, sm: 3 },
-                                py: { xs: 1, sm: 1.5 },
-                                textTransform: "none",
-                                fontWeight: 600,
-                                border: "2px solid",
-                                borderColor: "divider",
-                                fontSize: { xs: "0.875rem", sm: "1rem" },
-                                "&.Mui-selected": {
-                                  backgroundColor: "primary.main",
-                                  color: "white",
-                                  borderColor: "primary.main",
-                                  "&:hover": {
-                                    backgroundColor: "primary.dark",
-                                  },
-                                },
-                                "&:hover": {
-                                  backgroundColor: "grey.100",
-                                },
-                                flex: "1 1 120px",
-                                minWidth: { xs: "45%", sm: "auto" },
-                                maxWidth: { xs: "100%", sm: "none" },
-                              },
-                            }}
-                          >
-                            <ToggleButton value="sunrise" aria-label="sunrise">
-                              Sunrise
-                            </ToggleButton>
-                            <ToggleButton
-                              value="afternoon"
-                              aria-label="afternoon"
-                            >
-                              Afternoon
-                            </ToggleButton>
-                            <ToggleButton value="dusk" aria-label="dusk">
-                              Dusk
-                            </ToggleButton>
-                            <ToggleButton value="night" aria-label="night">
-                              Night
-                            </ToggleButton>
-                          </ToggleButtonGroup>
-                        </Box>
-
-                        {/* Custom Instructions Input */}
-                        <Box sx={{ mb: 3, px: { xs: 2, sm: 0 } }}>
-                          <TextField
-                            label="Optional: Add extra details for the AI (e.g. mood, background elements, weather...)"
-                            multiline
-                            minRows={2}
-                            maxRows={6}
-                            value={revisionData.customInstructions}
-                            onChange={(e) =>
-                              setRevisionData((prev) => ({
-                                ...prev,
-                                customInstructions: e.target.value,
-                              }))
-                            }
-                            variant="outlined"
-                            fullWidth
-                          />
-                        </Box>
-
-                        {/* Revision Error */}
-                        {revisionError && (
-                          <Alert
-                            severity="error"
-                            sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
-                          >
-                            <Typography variant="body2">
-                              {revisionError}
-                            </Typography>
-                          </Alert>
-                        )}
-
-                        {/* Revision Button */}
-                        <Box sx={{ px: { xs: 2, sm: 0 } }}>
-                          <Button
-                            variant="contained"
-                            size="large"
-                            fullWidth
-                            disabled={revisionLoading || !generationId}
-                            onClick={handleRevisionRequest}
-                            sx={{
-                              py: { xs: 1.5, sm: 2 },
-                              borderRadius: "12px",
-                              fontSize: { xs: "1rem", sm: "1.1rem" },
-                              fontWeight: 600,
-                              textTransform: "none",
-                              background:
-                                "linear-gradient(45deg, #8B5CF6 30%, #A78BFA 90%)",
-                              boxShadow: "0 3px 5px 2px rgba(139, 92, 246, .3)",
-                              "&:hover": {
-                                background:
-                                  "linear-gradient(45deg, #7C3AED 30%, #8B5CF6 90%)",
-                              },
-                              "&:disabled": {
-                                background: "grey.500",
-                                boxShadow: "none",
-                              },
-                            }}
-                          >
-                            {revisionLoading ? (
-                              <>
-                                <CircularProgress
-                                  size={20}
-                                  sx={{ mr: 1, color: "white" }}
-                                />
-                                Generating Revision...
-                              </>
-                            ) : (
-                              <>
-                                <RefreshIcon sx={{ mr: 1 }} />
-                                Generate Free Revision
-                              </>
-                            )}
-                          </Button>
-                        </Box>
-                      </>
+                        Generate Video
+                      </Button>
                     )}
                   </Box>
-                )}
-
-                {/* Revision Used Message */}
-                {!isRevisionEligible && generationId && (
-                  <Box sx={{ px: { xs: 2, sm: 0 } }}>
-                    <Alert
-                      severity="success"
-                      sx={{ mb: 3 }}
-                      gap={1}
-                      icon={<CheckCircleIcon />}
-                    >
-                      <Typography variant="body2">
-                        <strong>Revision Complete!</strong>
-                      </Typography>
-                      <Typography variant="body2">
-                        Your scene has been refined. You can download the new
-                        version or create a new scene.
-                      </Typography>
-                    </Alert>
-                  </Box>
-                )}
-
-                {/* Action Button */}
-                <Box
-                  sx={{
-                    mt: 4,
-                    display: "flex",
-                    justifyContent: "center",
-                    px: { xs: 2, sm: 0 },
-                  }}
-                >
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    onClick={handleReset}
-                    sx={{
-                      py: { xs: 1.5, sm: 2 },
-                      px: { xs: 3, sm: 4 },
-                      borderRadius: "12px",
-                      fontSize: { xs: "1rem", sm: "1.1rem" },
-                      fontWeight: 600,
-                      textTransform: "none",
-                      borderColor: "primary.main",
-                      color: "primary.main",
-                      "&:hover": {
-                        borderColor: "primary.dark",
-                        backgroundColor: "primary.main",
-                        color: "white",
-                      },
-                    }}
-                  >
-                    Create New Scene
-                  </Button>
-                </Box>
-              </Stack>
-            </Box>
+                </Stack>
+              </Box>
+            )}
           </motion.div>
         );
       default:
@@ -661,6 +757,7 @@ const StepsOverview = () => {
           maxWidth: 1200,
           width: "100%",
           alignItems: "center",
+          transition: "all 0.3s ease-in-out",
         }}
       >
         <UploadPhotoCard

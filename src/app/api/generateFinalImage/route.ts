@@ -12,6 +12,8 @@ interface GenerateFinalImageRequest {
   lng: number;
   timeOfDay: "sunrise" | "afternoon" | "dusk" | "night";
   customInstructions?: string; // Add optional customInstructions
+  carMake?: string; // Car make (optional)
+  carModel?: string; // Car model (optional)
   userId?: string; // New: for saving generation
   isRevision?: boolean; // New: revision flag
   originalGenerationId?: string; // New: links to original
@@ -144,7 +146,8 @@ async function generateSceneDescription(
   )
     return output[0];
   throw new Error(
-    "Our servers are currently experiencing high load, please check back later"
+    "Our servers are currently experiencing high load, please check back later: " +
+      output
   );
 }
 
@@ -169,7 +172,8 @@ async function analyzeCarImage(carImage: string): Promise<string> {
     )
       return output[0];
     throw new Error(
-      "Our servers are currently experiencing high load, please check back later"
+      "Our servers are currently experiencing high load, please check back later: " +
+        output
     );
   } catch (error) {
     console.error("Error analyzing car image:", error);
@@ -184,11 +188,19 @@ async function generateFinalImage(
   sceneDescription: string,
   timeOfDay: string,
   placeDescription: string,
-  customInstructions?: string
+  customInstructions?: string,
+  carMake?: string,
+  carModel?: string
 ): Promise<string> {
-  // Compose the improved prompt
-  const carDescription = await analyzeCarImage(carImage);
-  console.log("🚗 Car analysis result:", carDescription);
+  // Use provided car make/model if available, otherwise analyze the image
+  let carDescription: string;
+  if (carMake && carModel && carMake.trim() && carModel.trim()) {
+    carDescription = `${carMake.trim()} ${carModel.trim()}`;
+    console.log("🚗 Using provided car info:", carDescription);
+  } else {
+    carDescription = await analyzeCarImage(carImage);
+    console.log("🚗 Car analysis result:", carDescription);
+  }
   let finalPrompt = `Generate a single, photorealistic image of the car from the uploaded photo, placed in the provided location scene (${sceneDescription} ${timeOfDay} in ${placeDescription}). CRITICAL: Remove ALL text, overlays, watermarks, logos, copyright notices, or any Google-related elements (including "Google", "Google Maps", "© Google", or any similar text) from both the car image and the location image. The final image must contain NO text, watermarks, or overlays whatsoever. IMPORTANT: The time of day must be ${timeOfDay} and there must be NO mention or depiction of any other time of day. Only show the time of day provided, and do not reference or suggest any other time of day. STRICT RULE: Do NOT generate collages, split views, or multiple images—output only ONE single, natural, realistic shot. Do not invent or add any other vehicles, objects, or features. The background should be the provided location image, and the car should be seamlessly integrated with natural lighting and shadows matching the ${timeOfDay} setting. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
   if (customInstructions && customInstructions.trim().length > 0) {
     finalPrompt += ` ${customInstructions.trim()}`;
@@ -212,7 +224,8 @@ async function generateFinalImage(
   )
     return output[0];
   throw new Error(
-    "Our servers are currently experiencing high load, please check back later"
+    "Our servers are currently experiencing high load, please check back later: " +
+      output
   );
 }
 
@@ -380,7 +393,9 @@ export async function POST(request: NextRequest) {
       sceneDescription,
       timeOfDayText,
       placeDescription,
-      body.customInstructions
+      body.customInstructions,
+      body.carMake,
+      body.carModel
     );
 
     // Save generation to database for authenticated user

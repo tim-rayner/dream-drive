@@ -13,12 +13,14 @@ interface RevisionCarouselProps {
   originalGeneration: Generation;
   revisedGeneration: Generation;
   size?: number;
+  onImageChange?: (imageUrl: string) => void;
 }
 
 export default function RevisionCarousel({
   originalGeneration,
   revisedGeneration,
   size = 500,
+  onImageChange,
 }: RevisionCarouselProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const hasRevision = Boolean(revisedGeneration?.final_image_url);
@@ -177,6 +179,7 @@ export default function RevisionCarousel({
               revisedTitle={`Revised - ${revisedGeneration.time_of_day} in ${revisedGeneration.place_description}`}
               originalGeneration={originalGeneration}
               revisedGeneration={revisedGeneration}
+              onImageChange={onImageChange}
             />
           </Box>
         </Box>

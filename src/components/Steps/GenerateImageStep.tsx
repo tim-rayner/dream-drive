@@ -116,6 +116,7 @@ export default function GenerateImageStep({
   );
   const [error, setError] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState<string>("");
+
   const [creditError, setCreditError] = useState<string | null>(null);
   const { refreshCredits } = useCredits();
   const { user } = useAuth();

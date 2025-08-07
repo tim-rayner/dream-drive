@@ -19,6 +19,7 @@ interface ImageCarouselProps {
   originalGeneration?: { time_of_day?: string; place_description?: string };
   revisedGeneration?: { time_of_day?: string; place_description?: string };
   onClose?: () => void;
+  onImageChange?: (imageUrl: string) => void;
 }
 
 export default function ImageCarousel({
@@ -29,6 +30,7 @@ export default function ImageCarousel({
   originalGeneration,
   revisedGeneration,
   onClose,
+  onImageChange,
 }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(1); // Start with revised image (index 1)
   const [isDownloading, setIsDownloading] = useState(false);
@@ -116,6 +118,13 @@ export default function ImageCarousel({
     window.addEventListener("keydown", handleKeyDownWrapper);
     return () => window.removeEventListener("keydown", handleKeyDownWrapper);
   }, [handleKeyDown]);
+
+  // Notify parent component when current image changes
+  useEffect(() => {
+    if (onImageChange && images[currentIndex]) {
+      onImageChange(images[currentIndex].url);
+    }
+  }, [currentIndex, images, onImageChange]);
 
   return (
     <Box
