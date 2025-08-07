@@ -421,7 +421,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       sx={{
         position: "relative",
         width: "100%",
-        height: "400px",
+        height: { xs: "400px", sm: "600px" },
         ...style,
       }}
     >

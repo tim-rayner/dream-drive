@@ -686,7 +686,6 @@ const StepsOverview = () => {
       <Divider
         sx={{
           width: "100%",
-          maxWidth: 800,
           mt: { xs: 3, sm: 4 },
           mb: { xs: 3, sm: 4 },
         }}
@@ -696,7 +695,6 @@ const StepsOverview = () => {
         sx={{
           mt: { xs: 3, sm: 4 },
           width: "100%",
-          maxWidth: 800,
           px: { xs: 2, sm: 0 },
         }}
       >

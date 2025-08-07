@@ -10,6 +10,7 @@ interface Star {
   size: number;
   opacity: number;
   animationDelay: number;
+  animationDuration: number;
 }
 
 interface StarryBackgroundProps {
@@ -22,9 +23,12 @@ export default function StarryBackground({
   className,
 }: StarryBackgroundProps) {
   const [stars, setStars] = useState<Star[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Generate stars
+    setIsClient(true);
+
+    // Generate stars only on client side
     const generateStars = () => {
       const newStars: Star[] = [];
       const starCount = 150; // Number of stars
@@ -37,6 +41,7 @@ export default function StarryBackground({
           size: Math.random() * 2 + 1, // 1-3px
           opacity: Math.random() * 0.8 + 0.2, // 0.2-1.0
           animationDelay: Math.random() * 3, // 0-3s delay
+          animationDuration: 3 + Math.random() * 2, // 3-5s duration
         });
       }
       setStars(newStars);
@@ -68,28 +73,27 @@ export default function StarryBackground({
           pointerEvents: "none",
         }}
       >
-        {stars.map((star) => (
-          <Box
-            key={star.id}
-            sx={{
-              position: "absolute",
-              left: `${star.x}%`,
-              top: `${star.y}%`,
-              width: `${star.size}px`,
-              height: `${star.size}px`,
-              backgroundColor: "#ffffff",
-              borderRadius: "50%",
-              opacity: star.opacity,
-              animation: `twinkle ${
-                3 + Math.random() * 2
-              }s ease-in-out infinite`,
-              animationDelay: `${star.animationDelay}s`,
-              boxShadow: `0 0 ${star.size * 2}px rgba(255, 255, 255, ${
-                star.opacity
-              })`,
-            }}
-          />
-        ))}
+        {isClient &&
+          stars.map((star) => (
+            <Box
+              key={star.id}
+              sx={{
+                position: "absolute",
+                left: `${star.x}%`,
+                top: `${star.y}%`,
+                width: `${star.size}px`,
+                height: `${star.size}px`,
+                backgroundColor: "#ffffff",
+                borderRadius: "50%",
+                opacity: star.opacity,
+                animation: `twinkle ${star.animationDuration}s ease-in-out infinite`,
+                animationDelay: `${star.animationDelay}s`,
+                boxShadow: `0 0 ${star.size * 2}px rgba(255, 255, 255, ${
+                  star.opacity
+                })`,
+              }}
+            />
+          ))}
       </Box>
 
       {/* Content Layer */}
