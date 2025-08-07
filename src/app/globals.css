@@ -28,6 +28,20 @@ body {
 html,
 body {
   touch-action: manipulation;
+  overflow-x: hidden;
+}
+
+/* Mobile-specific styles to prevent overflow */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Ensure images don't overflow on mobile */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 /* Starry Background Animations */

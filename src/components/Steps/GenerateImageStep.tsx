@@ -1,6 +1,5 @@
 import {
   Brightness5 as AfternoonIcon,
-  AutoAwesome as AutoAwesomeIcon,
   WbTwilight as DuskIcon,
   Map as MapIcon,
   Nightlight as NightIcon,
@@ -29,7 +28,7 @@ import { refundCredit } from "../../lib/actions/refundCredit";
 import { spendCredit } from "../../lib/creditsService";
 
 interface GenerateImageStepProps {
-  onComplete: (imageUrl?: string) => void;
+  onComplete: (imageUrl?: string, generationId?: string) => void;
   uploadedFile: File | null;
   sceneImage: string | null;
   mapData: {
@@ -203,7 +202,7 @@ export default function GenerateImageStep({
         setCurrentStep("completed");
 
         setTimeout(() => {
-          onComplete(result.imageUrl);
+          onComplete(result.imageUrl, result.generationId || null);
         }, 150);
       } else {
         throw new Error("No image URL returned from API");
@@ -392,17 +391,22 @@ export default function GenerateImageStep({
               border: "1px solid",
               borderColor: "divider",
               backgroundColor: "background.paper",
+              aspectRatio: "1 / 1",
+              maxWidth: { xs: "calc(100vw - 64px)", sm: "none" },
+              maxHeight: { xs: "calc(100vw - 64px)", sm: "none" },
             }}
           >
             <Image
               src={imageUrl || ""}
               alt={title}
-              width={800}
-              height={600}
+              width={400}
+              height={400}
               priority
               style={{
                 display: "block",
                 objectFit: "cover",
+                width: "100%",
+                height: "100%",
               }}
             />
           </Box>
@@ -579,7 +583,7 @@ export default function GenerateImageStep({
                 variant="body2"
                 sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
               >
-                💰 {creditError} - Please purchase more credits to continue.
+                {creditError}
               </Typography>
             </Alert>
           )}
@@ -603,18 +607,7 @@ export default function GenerateImageStep({
                 ✅ Generation complete! Your AI scene is ready.
               </Typography>
             </Alert>
-          ) : (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography
-                variant="body2"
-                sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
-              >
-                {isGenerating
-                  ? "🔄 Generating your AI scene..."
-                  : "Ready to generate your dream scene with AI."}
-              </Typography>
-            </Alert>
-          )}
+          ) : null}
 
           {currentStep === "idle" && (
             <Button
@@ -710,96 +703,6 @@ export default function GenerateImageStep({
             </Box>
           )}
         </Box>
-
-        {/* Final Scene Display */}
-        {finalImageUrl && (
-          <Box>
-            <Typography
-              variant="h5"
-              fontWeight={600}
-              sx={{ mb: 3, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
-            >
-              Your Generated Scene
-            </Typography>
-
-            <Card
-              sx={{
-                borderRadius: "12px",
-                overflow: "hidden",
-                border: "2px solid",
-                borderColor: "primary.main",
-                boxShadow: "0 8px 32px rgba(139, 92, 246, 0.3)",
-                height: "auto",
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: 0,
-                  "&:last-child": { pb: 0 },
-                  height: "auto",
-                  m: 0,
-                  "&.MuiCardContent-root": {
-                    padding: 0,
-                    margin: 0,
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    position: "relative",
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "background.paper",
-                    m: 0,
-                    p: 0,
-                  }}
-                >
-                  <Image
-                    src={finalImageUrl}
-                    alt="Generated AI Scene"
-                    width={800}
-                    height={600}
-                    priority
-                    style={{
-                      display: "block",
-                      objectFit: "cover",
-                      width: "100%",
-                      height: "auto",
-                      margin: 0,
-                      padding: 0,
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: { xs: 8, sm: 16 },
-                      right: { xs: 8, sm: 16 },
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      backgroundColor: "rgba(0,0,0,0.7)",
-                      color: "white",
-                      px: { xs: 1, sm: 2 },
-                      py: { xs: 0.5, sm: 1 },
-                      borderRadius: "20px",
-                    }}
-                  >
-                    <AutoAwesomeIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
-                    >
-                      AI Generated
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-        )}
       </Stack>
     </Box>
   );

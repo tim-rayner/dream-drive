@@ -63,6 +63,7 @@ const UploadPhotoCard = ({ uploadedFile, activeStep, triggerFilePicker }) => {
               height: "100%",
               display: "flex",
               flexDirection: "column",
+              overflow: "visible",
             }}
           >
             <Stack
@@ -87,7 +88,7 @@ const UploadPhotoCard = ({ uploadedFile, activeStep, triggerFilePicker }) => {
                   justifyContent: "center",
                   mb: 2,
                   position: "relative",
-                  overflow: "hidden",
+                  overflow: "visible",
                 }}
               >
                 {uploadedFile ? (

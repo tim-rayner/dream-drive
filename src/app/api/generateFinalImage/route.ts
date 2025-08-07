@@ -1,4 +1,5 @@
 import { generationRateLimiter, rateLimit } from "@/lib/rateLimit";
+import { callReplicate } from "@/lib/replicate";
 import { supabaseAdmin, type CreateGenerationData } from "@/lib/supabase";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
@@ -18,77 +19,25 @@ interface GenerateFinalImageRequest {
 
 // Reverse geocoding to get place names
 async function getPlaceDescription(lat: number, lng: number): Promise<string> {
-  console.log("🚀 getPlaceDescription function called");
   try {
-    console.log(`🔍 Reverse geocoding coordinates: ${lat}, ${lng}`);
-
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    console.log(
-      `🔑 Environment variable check: ${
-        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? "Present" : "Missing"
-      }`
-    );
 
     if (!apiKey) {
-      console.error(
-        "❌ Google Maps API key is missing from environment variables"
-      );
       throw new Error("Google Maps API key is missing");
     }
 
-    console.log(`🔑 API key present: ${apiKey ? "Yes" : "No"}`);
-    console.log(`🔑 API key length: ${apiKey.length}`);
-    console.log(`🔑 API key starts with: ${apiKey.substring(0, 10)}...`);
-
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
-    console.log(
-      `🌐 Geocoding URL: ${geocodeUrl.replace(
-        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-        "[API_KEY]"
-      )}`
-    );
-    console.log(`🔍 Full URL (with key): ${geocodeUrl}`);
 
     const response = await fetch(geocodeUrl);
-    console.log(
-      `📡 Geocoding response status: ${response.status} ${response.statusText}`
-    );
-
-    // Log response headers for debugging
-    console.log(
-      "📋 Response headers:",
-      Object.fromEntries(response.headers.entries())
-    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        `❌ Geocoding API error: ${response.status} - ${errorText}`
-      );
       throw new Error(`Geocoding API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log("📍 Raw geocoding response:", JSON.stringify(data, null, 2));
 
     if (data.status !== "OK") {
-      console.error("❌ Geocoding API returned status:", data.status);
-      if (data.error_message) {
-        console.error("❌ Error message:", data.error_message);
-      }
-
-      // Handle specific error cases
-      if (data.status === "REQUEST_DENIED") {
-        console.error("❌ Request denied - check API key and billing");
-        console.error(
-          "❌ Make sure Geocoding API is enabled and billing is set up"
-        );
-      } else if (data.status === "OVER_QUERY_LIMIT") {
-        console.error("❌ Over query limit - check billing and quotas");
-      } else if (data.status === "ZERO_RESULTS") {
-        console.error("❌ No results found for these coordinates");
-      }
-
       throw new Error(
         `Geocoding API error: ${data.status}${
           data.error_message ? ` - ${data.error_message}` : ""
@@ -97,17 +46,11 @@ async function getPlaceDescription(lat: number, lng: number): Promise<string> {
     }
 
     if (!data.results || data.results.length === 0) {
-      console.error("❌ No results found in geocoding response");
       throw new Error("No location data found");
     }
 
-    console.log("✅ Geocoding API call successful");
-    console.log("📊 Number of results:", data.results.length);
-
     const result = data.results[0];
     const addressComponents = result.address_components;
-
-    console.log("🏠 Full address components:", addressComponents);
 
     // Extract locality (city/town) and administrative_area_level_1 (state/county)
     let locality = "";
@@ -119,90 +62,50 @@ async function getPlaceDescription(lat: number, lng: number): Promise<string> {
     let sublocality = "";
     let neighborhood = "";
 
-    console.log("🔍 Processing address components...");
     for (const component of addressComponents) {
-      console.log(
-        `  📝 Component: ${component.long_name} (${component.types.join(", ")})`
-      );
-
       if (component.types.includes("locality")) {
         locality = component.long_name;
-        console.log(`    ✅ Found locality: ${locality}`);
       } else if (component.types.includes("administrative_area_level_1")) {
         administrativeArea = component.long_name;
-        console.log(`    ✅ Found administrative area: ${administrativeArea}`);
       } else if (component.types.includes("country")) {
         country = component.long_name;
-        console.log(`    ✅ Found country: ${country}`);
       } else if (component.types.includes("street_number")) {
         streetNumber = component.long_name;
-        console.log(`    ✅ Found street number: ${streetNumber}`);
       } else if (component.types.includes("route")) {
         route = component.long_name;
-        console.log(`    ✅ Found route: ${route}`);
       } else if (component.types.includes("postal_code")) {
         postalCode = component.long_name;
-        console.log(`    ✅ Found postal code: ${postalCode}`);
       } else if (component.types.includes("sublocality")) {
         sublocality = component.long_name;
-        console.log(`    ✅ Found sublocality: ${sublocality}`);
       } else if (component.types.includes("neighborhood")) {
         neighborhood = component.long_name;
-        console.log(`    ✅ Found neighborhood: ${neighborhood}`);
       }
     }
 
-    console.log("🏘️ Extracted location data:", {
-      streetNumber,
-      route,
-      locality,
-      administrativeArea,
-      country,
-      postalCode,
-      sublocality,
-      neighborhood,
-    });
-
     // Build a natural place description
-    console.log("🏗️ Building place description...");
     let placeDescription = "";
     if (locality && administrativeArea) {
       placeDescription = `${locality}, ${administrativeArea}`;
-      console.log(
-        `    ✅ Using locality + administrative area: ${placeDescription}`
-      );
     } else if (locality) {
       placeDescription = locality;
-      console.log(`    ✅ Using locality only: ${placeDescription}`);
     } else if (sublocality && administrativeArea) {
       placeDescription = `${sublocality}, ${administrativeArea}`;
-      console.log(
-        `    ✅ Using sublocality + administrative area: ${placeDescription}`
-      );
     } else if (sublocality) {
       placeDescription = sublocality;
-      console.log(`    ✅ Using sublocality only: ${placeDescription}`);
     } else if (administrativeArea) {
       placeDescription = administrativeArea;
-      console.log(`    ✅ Using administrative area only: ${placeDescription}`);
     } else if (neighborhood) {
       placeDescription = neighborhood;
-      console.log(`    ✅ Using neighborhood: ${placeDescription}`);
     } else if (route) {
       // Use street name if available
       placeDescription = route;
       if (streetNumber) {
         placeDescription = `${streetNumber} ${route}`;
       }
-      console.log(`    ✅ Using route: ${placeDescription}`);
     } else if (country) {
       placeDescription = country;
-      console.log(`    ✅ Using country: ${placeDescription}`);
     } else {
       placeDescription = "this location";
-      console.log(
-        `    ❌ No usable address components found, using fallback: ${placeDescription}`
-      );
     }
 
     if (
@@ -213,76 +116,10 @@ async function getPlaceDescription(lat: number, lng: number): Promise<string> {
       placeDescription += `, ${country}`;
     }
 
-    console.log("🎯 Final place description:", placeDescription);
     return placeDescription;
   } catch (error) {
-    console.error("❌ Error in reverse geocoding:", error);
-    console.error("❌ Error details:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
     return "this location";
   }
-}
-
-// Helper to call Replicate API with fetch
-async function callReplicate({
-  version,
-  input,
-}: {
-  version: string;
-  input: unknown;
-}): Promise<unknown> {
-  const replicateToken = process.env.REPLICATE_API_TOKEN;
-  if (!replicateToken) throw new Error("Replicate API token not configured");
-  const response = await fetch("https://api.replicate.com/v1/predictions", {
-    method: "POST",
-    headers: {
-      Authorization: `Token ${replicateToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ version, input }),
-  });
-  if (!response.ok) {
-    const errorData = await response.text();
-
-    // Show user-friendly message for any Replicate API error
-    throw new Error(
-      "Our servers are currently experiencing high load, please check back later"
-    );
-  }
-  const prediction = await response.json();
-  // Poll for completion
-  let attempts = 0;
-  const maxAttempts = 60;
-  while (attempts < maxAttempts) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    const statusResponse = await fetch(
-      `https://api.replicate.com/v1/predictions/${prediction.id}`,
-      {
-        headers: {
-          Authorization: `Token ${replicateToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    if (!statusResponse.ok)
-      throw new Error(
-        "Our servers are currently experiencing high load, please check back later"
-      );
-    const statusData = await statusResponse.json();
-    if (statusData.status === "succeeded") {
-      return statusData.output;
-    } else if (statusData.status === "failed") {
-      throw new Error(
-        "Our servers are currently experiencing high load, please check back later"
-      );
-    }
-    attempts++;
-  }
-  throw new Error(
-    "Our servers are currently experiencing high load, please check back later"
-  );
 }
 
 // Generate scene description using BLIP
@@ -363,6 +200,8 @@ async function generateFinalImage(
       input_image_1: carImage,
       input_image_2: sceneImage,
       prompt: finalPrompt,
+      width: 1024,
+      height: 1024,
     },
   });
   if (typeof output === "string") return output;
@@ -394,12 +233,11 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.log("❌ Authentication failed:", authError);
+      console.error("❌ Authentication failed:", authError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // 🔒 CRITICAL SECURITY: Validate and deduct credits BEFORE any processing
-    console.log("🔒 Validating credits for user:", user.id);
     const { data: creditData, error: creditError } = await supabase
       .from("credits")
       .select("available_credits")
@@ -407,7 +245,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (creditError) {
-      console.log("❌ Error fetching credits:", creditError);
+      console.error("❌ Error fetching credits:", creditError);
       // If no credits row exists, create one with 0 credits
       if (creditError.code === "PGRST116") {
         const { data: newCreditData, error: insertError } = await supabase
@@ -417,7 +255,7 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (insertError) {
-          console.log("❌ Failed to initialize credits:", insertError);
+          console.error("❌ Failed to initialize credits:", insertError);
           return NextResponse.json(
             { error: "Failed to initialize credits" },
             { status: 500 }
@@ -436,7 +274,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!creditData || creditData.available_credits < 1) {
-      console.log("❌ Insufficient credits:", {
+      console.error("❌ Insufficient credits:", {
         available: creditData?.available_credits || 0,
         userId: user.id,
       });
@@ -449,11 +287,6 @@ export async function POST(request: NextRequest) {
         { status: 402 }
       );
     }
-
-    console.log(
-      "✅ User has sufficient credits:",
-      creditData.available_credits
-    );
 
     // 🔒 CRITICAL SECURITY: Deduct credit BEFORE any image generation
     const { data: updatedCredits, error: deductError } = await supabase
@@ -468,17 +301,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (deductError || !updatedCredits) {
-      console.log("❌ Failed to deduct credit:", deductError);
+      console.error("❌ Failed to deduct credit:", deductError);
       return NextResponse.json(
         { error: "Failed to process credit deduction" },
         { status: 500 }
       );
     }
-
-    console.log(
-      "✅ Credit deducted successfully:",
-      updatedCredits.available_credits
-    );
 
     const body: GenerateFinalImageRequest = await request.json();
 
@@ -524,35 +352,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("🌍 Starting reverse geocoding for coordinates:", {
-      lat: body.lat,
-      lng: body.lng,
-    });
-
     // Step 1: Get place description from coordinates
     let placeDescription = "this location"; // Default fallback
-    console.log("🔄 About to call getPlaceDescription function...");
     try {
       placeDescription = await getPlaceDescription(body.lat, body.lng);
-      console.log("✅ Place description retrieved:", placeDescription);
-    } catch (error) {
-      console.error("❌ Failed to get place description:", error);
-      console.error("❌ Error details:", {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      console.error("❌ Using fallback place description");
-    }
-
-    // Log the final place description that will be used
-    console.log("🎯 Final place description for prompt:", placeDescription);
+    } catch (error) {}
 
     // Step 2: Generate scene description using BLIP
     const sceneDescription = await generateSceneDescription(
       body.sceneImage,
       placeDescription
     );
-    console.log("Scene description:", sceneDescription);
 
     // Step 3: Generate final image
     const timeOfDayText =
@@ -572,13 +382,10 @@ export async function POST(request: NextRequest) {
       placeDescription,
       body.customInstructions
     );
-    console.log("Final image generated:", finalImageUrl);
 
     // Save generation to database for authenticated user
     let savedGenerationId: string | null = null;
     try {
-      console.log("💾 Saving generation to database for user:", user.id);
-
       const generationData: CreateGenerationData = {
         car_image_url: body.carImage,
         scene_image_url: body.sceneImage,
@@ -593,10 +400,6 @@ export async function POST(request: NextRequest) {
 
       // Use admin client if available, otherwise use authenticated client
       const client = supabaseAdmin || supabase;
-      console.log(
-        "📡 Using database client:",
-        supabaseAdmin ? "admin" : "authenticated"
-      );
 
       const { data: savedGeneration, error: saveError } = await client
         .from("generations")
@@ -621,15 +424,10 @@ export async function POST(request: NextRequest) {
         // Don't fail the request if database save fails
       } else {
         savedGenerationId = savedGeneration?.id || null;
-        console.log("✅ Generation saved with ID:", savedGenerationId);
       }
     } catch (error) {
-      console.error("❌ Exception saving generation:", error);
-      console.error("❌ Error details:", {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
       // Don't fail the request if database save fails
+      console.error("❌ Error saving generation to database:", error);
     }
 
     return NextResponse.json({

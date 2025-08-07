@@ -363,6 +363,8 @@ async function generateFinalImage(
       input_image_1: carImage,
       input_image_2: sceneImage,
       prompt: finalPrompt,
+      width: 1024,
+      height: 1024,
     },
   });
   if (typeof output === "string") return output;

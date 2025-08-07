@@ -1,20 +1,26 @@
 "use client";
 
 import {
-  AutoAwesome as AutoAwesomeIcon,
   CheckCircle as CheckCircleIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import {
+  Alert,
   Box,
   Button,
-  Card,
-  CardContent,
+  CircularProgress,
   Divider,
   Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useCredits } from "../../context/CreditsContext";
+import RevisionCarousel from "../RevisionCarousel";
 import ChooseLocationStep from "./ChooseLocationStep";
 import GenerateImageStep from "./GenerateImageStep";
 import UploadPhotoStep from "./UploadPhotoStep";
@@ -36,7 +42,19 @@ const StepsOverview = () => {
     position: null,
     marker: null,
   });
+  const [generationId, setGenerationId] = useState(null);
+  const [originalGeneration, setOriginalGeneration] = useState(null);
+  const [revisedGeneration, setRevisedGeneration] = useState(null);
+  const [revisionData, setRevisionData] = useState({
+    timeOfDay: "afternoon",
+    customInstructions: "",
+  });
+  const [isRevisionEligible, setIsRevisionEligible] = useState(true);
+  const [revisionLoading, setRevisionLoading] = useState(false);
+  const [revisionError, setRevisionError] = useState(null);
   const mapContainerRef = useRef(null);
+  const { user } = useAuth();
+  const { refreshCredits } = useCredits();
 
   useEffect(() => {
     if (activeStep === 1 && mapContainerRef.current) {
@@ -69,11 +87,105 @@ const StepsOverview = () => {
     setMapData(newMapData);
   }, []);
 
-  const handleGenerationComplete = useCallback((imageUrl) => {
-    setGeneratedImageUrl(imageUrl);
-    setStepCompletion((prev) => ({ ...prev, 2: true }));
-    setActiveStep(3);
-  }, []);
+  const handleGenerationComplete = useCallback(
+    (imageUrl, generationId = null) => {
+      setGeneratedImageUrl(imageUrl);
+      if (generationId) {
+        setGenerationId(generationId);
+        // Create a basic generation object for the original
+        setOriginalGeneration({
+          id: generationId,
+          final_image_url: imageUrl,
+          time_of_day: "afternoon", // Default, could be enhanced
+          place_description: "Selected location", // Default, could be enhanced
+        });
+      }
+      setStepCompletion((prev) => ({ ...prev, 2: true }));
+      setActiveStep(3);
+    },
+    []
+  );
+
+  const handleRevisionRequest = useCallback(async () => {
+    if (!user) {
+      setRevisionError("You must be logged in to request a revision");
+      return;
+    }
+
+    if (!generationId) {
+      setRevisionError("No generation ID available for revision");
+      return;
+    }
+
+    setRevisionLoading(true);
+    setRevisionError(null);
+
+    try {
+      const response = await fetch("/api/revision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          originalGenerationId: generationId,
+          carImage: uploadedFile ? await fileToBase64(uploadedFile) : null,
+          sceneImage: sceneImage,
+          lat: mapData.position.lat,
+          lng: mapData.position.lng,
+          timeOfDay: revisionData.timeOfDay,
+          customInstructions: revisionData.customInstructions,
+          userId: user.id,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Revision request failed");
+      }
+
+      if (result.success && result.imageUrl) {
+        setGeneratedImageUrl(result.imageUrl);
+        setIsRevisionEligible(false);
+
+        // Store the revised generation
+        setRevisedGeneration({
+          id: result.generationId || `revised-${Date.now()}`,
+          final_image_url: result.imageUrl,
+          time_of_day: revisionData.timeOfDay,
+          place_description: result.placeDescription || "Revised location",
+          original_generation_id: generationId,
+          is_revision: true,
+        });
+
+        await refreshCredits();
+      } else {
+        throw new Error("No image URL returned from revision API");
+      }
+    } catch (error) {
+      console.error("Error requesting revision:", error);
+      setRevisionError(error.message || "Revision failed");
+    } finally {
+      setRevisionLoading(false);
+    }
+  }, [
+    user,
+    generationId,
+    uploadedFile,
+    sceneImage,
+    mapData,
+    revisionData,
+    refreshCredits,
+  ]);
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleReset = useCallback(() => {
     setActiveStep(0);
@@ -82,7 +194,26 @@ const StepsOverview = () => {
     setSceneImage(null);
     setGeneratedImageUrl(null);
     setMapData({ position: null, marker: null });
+    setGenerationId(null);
+    setOriginalGeneration(null);
+    setRevisedGeneration(null);
+    setRevisionData({ timeOfDay: "afternoon", customInstructions: "" });
+    setIsRevisionEligible(true);
+    setRevisionError(null);
   }, []);
+
+  const isStepEnabled = (stepIndex) => {
+    if (stepIndex === 0) return true;
+    if (stepIndex === 1) return stepCompletion[0];
+    if (stepIndex === 2) return stepCompletion[0] && stepCompletion[1];
+    if (stepIndex === 3)
+      return (
+        stepCompletion[0] &&
+        stepCompletion[1] &&
+        (stepCompletion[2] || generatedImageUrl)
+      );
+    return false;
+  };
 
   // Function to trigger file picker from stepper
   const triggerFilePicker = useCallback(() => {
@@ -107,6 +238,15 @@ const StepsOverview = () => {
       fileInput.click();
     }
   }, [uploadedFile, handleFileUpload]);
+
+  const handleStepClick = useCallback(
+    (stepIndex) => {
+      if (isStepEnabled(stepIndex)) {
+        setActiveStep(stepIndex);
+      }
+    },
+    [isStepEnabled]
+  );
 
   const renderActiveStep = () => {
     switch (activeStep) {
@@ -177,7 +317,7 @@ const StepsOverview = () => {
             transition={{ duration: 0.4 }}
           >
             <Box sx={{ maxWidth: 1200, mx: "auto", width: "100%" }}>
-              <Stack spacing={4}>
+              <Stack spacing={4} sx={{ px: { xs: 2, sm: 0 } }} mx="auto">
                 {/* Header */}
                 <Box sx={{ textAlign: "center" }}>
                   <Box
@@ -190,25 +330,13 @@ const StepsOverview = () => {
                       gap: { xs: 2, sm: 3 },
                     }}
                   >
-                    <Box
+                    <CheckCircleIcon
                       sx={{
-                        width: { xs: 60, sm: 80 },
-                        height: { xs: 60, sm: 80 },
-                        borderRadius: "50%",
-                        background:
-                          "linear-gradient(135deg, #10B981 0%, #34D399 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        fontSize: { xs: 30, sm: 40 },
+                        color: "white",
                       }}
-                    >
-                      <CheckCircleIcon
-                        sx={{
-                          fontSize: { xs: 30, sm: 40 },
-                          color: "white",
-                        }}
-                      />
-                    </Box>
+                    />
+
                     <Typography
                       variant="h4"
                       component="h2"
@@ -217,7 +345,7 @@ const StepsOverview = () => {
                         fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
                       }}
                     >
-                      DriveDream Complete! 🎉
+                      Shoot Complete!
                     </Typography>
                   </Box>
                   <Typography
@@ -225,256 +353,268 @@ const StepsOverview = () => {
                     color="text.secondary"
                     sx={{ px: { xs: 2, sm: 0 } }}
                   >
-                    Your AI-generated car scene is ready! Download and share
-                    your creation.
+                    Your AI-generated car scene is ready! Download, share, or
+                    refine your creation.
                   </Typography>
                 </Box>
 
                 {/* Final Image Display */}
-                {generatedImageUrl && (
+                {generatedImageUrl && originalGeneration && (
+                  <Box>
+                    <RevisionCarousel
+                      originalGeneration={originalGeneration}
+                      revisedGeneration={revisedGeneration}
+                      size={500}
+                    />
+                  </Box>
+                )}
+
+                {/* Revision Section */}
+                {isRevisionEligible && generationId && (
                   <Box>
                     <Typography
                       variant="h5"
                       fontWeight={600}
                       sx={{ mb: 3, px: { xs: 2, sm: 0 } }}
                     >
-                      Your Generated Scene
+                      Refine Your Scene
                     </Typography>
 
-                    <Card
-                      sx={{
-                        borderRadius: "12px",
-                        overflow: "hidden",
-                        border: "2px solid",
-                        borderColor: "success.main",
-                        boxShadow: "0 8px 32px rgba(16, 185, 129, 0.3)",
-                        mx: { xs: 2, sm: 0 },
-                      }}
-                    >
-                      <CardContent
-                        sx={{
-                          p: 0,
-                          "&:last-child": { pb: 0 },
-                          height: "auto",
-                          m: 0,
-                          "&.MuiCardContent-root": {
-                            padding: 0,
-                            margin: 0,
-                          },
-                        }}
+                    {!user ? (
+                      <Alert
+                        severity="warning"
+                        sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
                       >
-                        <Box
-                          sx={{
-                            position: "relative",
-                            width: "100%",
-                            height: "auto",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "background.paper",
-                            objectFit: "contain",
-                            m: 0,
-                            p: 0,
-                          }}
+                        <Typography variant="body2">
+                          <strong>Login Required:</strong> You need to be logged
+                          in to use the free revision feature. Please log in to
+                          refine your scene.
+                        </Typography>
+                      </Alert>
+                    ) : (
+                      <>
+                        <Alert
+                          severity="info"
+                          sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
+                          icon={<RefreshIcon />}
                         >
-                          <img
-                            src={generatedImageUrl}
-                            alt="Generated AI Scene"
-                            style={{
-                              width: "100%",
-                              height: "auto",
-                              display: "block",
-                              objectFit: "contain",
-                              margin: 0,
-                              padding: 0,
-                            }}
-                          />
-                          <Box
+                          <Typography variant="body2">
+                            <strong>Free Revision Available!</strong>
+                          </Typography>
+                          <Typography variant="body2">
+                            You can refine your scene once with different
+                            settings. Change the time of day, location, or add
+                            custom instructions.
+                          </Typography>
+                        </Alert>
+
+                        {/* Time of Day Selection */}
+                        <Box sx={{ mb: 3, px: { xs: 2, sm: 0 } }}>
+                          <Typography
+                            variant="h6"
+                            fontWeight={600}
                             sx={{
-                              position: "absolute",
-                              top: { xs: 8, sm: 16 },
-                              right: { xs: 8, sm: 16 },
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              backgroundColor: "rgba(0,0,0,0.7)",
-                              color: "white",
-                              px: { xs: 1, sm: 2 },
-                              py: { xs: 0.5, sm: 1 },
-                              borderRadius: "20px",
+                              mb: 2,
+                              fontSize: { xs: "1.1rem", sm: "1.25rem" },
                             }}
                           >
-                            <AutoAwesomeIcon
-                              sx={{ fontSize: { xs: 16, sm: 20 } }}
-                            />
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              sx={{
-                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                              }}
-                            >
-                              AI Generated
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-
-                    {/* Action Buttons */}
-                    <Box
-                      sx={{
-                        mt: 4,
-                        display: "flex",
-                        flexDirection: { xs: "column", sm: "row" },
-                        gap: 2,
-                        justifyContent: "center",
-                        px: { xs: 2, sm: 0 },
-                      }}
-                    >
-                      <Button
-                        variant="contained"
-                        size="large"
-                        onClick={async () => {
-                          try {
-                            console.log(
-                              "Attempting to download:",
-                              generatedImageUrl
-                            );
-
-                            // Try to fetch with credentials and proper headers
-                            const response = await fetch(generatedImageUrl, {
-                              method: "GET",
-                              mode: "cors",
-                              credentials: "omit",
-                              headers: {
-                                Accept: "image/*",
+                            Time of Day
+                          </Typography>
+                          <ToggleButtonGroup
+                            value={revisionData.timeOfDay}
+                            exclusive
+                            onChange={(_, newValue) => {
+                              if (newValue !== null) {
+                                setRevisionData((prev) => ({
+                                  ...prev,
+                                  timeOfDay: newValue,
+                                }));
+                              }
+                            }}
+                            aria-label="time of day"
+                            sx={{
+                              flexWrap: "wrap",
+                              width: "100%",
+                              justifyContent: {
+                                xs: "center",
+                                sm: "flex-start",
                               },
-                            });
-
-                            if (!response.ok) {
-                              throw new Error(
-                                `HTTP error! status: ${response.status}`
-                              );
-                            }
-
-                            const blob = await response.blob();
-                            console.log("Blob created, size:", blob.size);
-
-                            const blobUrl = window.URL.createObjectURL(blob);
-                            console.log("Blob URL created:", blobUrl);
-
-                            const link = document.createElement("a");
-                            link.href = blobUrl;
-                            link.download = "dream-drive-scene.jpg";
-                            link.style.display = "none"; // Hide the link
-
-                            document.body.appendChild(link);
-                            link.click();
-
-                            // Clean up
-                            setTimeout(() => {
-                              document.body.removeChild(link);
-                              window.URL.revokeObjectURL(blobUrl);
-                            }, 100);
-
-                            console.log("Download initiated successfully");
-                          } catch (error) {
-                            console.error("Error downloading image:", error);
-
-                            // Alternative approach: try to force download with a different method
-                            try {
-                              const canvas = document.createElement("canvas");
-                              const ctx = canvas.getContext("2d");
-                              const img = new Image();
-
-                              img.crossOrigin = "anonymous";
-                              img.onload = () => {
-                                canvas.width = img.width;
-                                canvas.height = img.height;
-                                ctx.drawImage(img, 0, 0);
-
-                                canvas.toBlob(
-                                  (blob) => {
-                                    const url =
-                                      window.URL.createObjectURL(blob);
-                                    const link = document.createElement("a");
-                                    link.href = url;
-                                    link.download = "dream-drive-scene.jpg";
-                                    link.style.display = "none";
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    window.URL.revokeObjectURL(url);
+                              gap: { xs: 1, sm: 2 },
+                              "& .MuiToggleButton-root": {
+                                borderRadius: "12px",
+                                px: { xs: 2, sm: 3 },
+                                py: { xs: 1, sm: 1.5 },
+                                textTransform: "none",
+                                fontWeight: 600,
+                                border: "2px solid",
+                                borderColor: "divider",
+                                fontSize: { xs: "0.875rem", sm: "1rem" },
+                                "&.Mui-selected": {
+                                  backgroundColor: "primary.main",
+                                  color: "white",
+                                  borderColor: "primary.main",
+                                  "&:hover": {
+                                    backgroundColor: "primary.dark",
                                   },
-                                  "image/jpeg",
-                                  0.9
-                                );
-                              };
+                                },
+                                "&:hover": {
+                                  backgroundColor: "grey.100",
+                                },
+                                flex: "1 1 120px",
+                                minWidth: { xs: "45%", sm: "auto" },
+                                maxWidth: { xs: "100%", sm: "none" },
+                              },
+                            }}
+                          >
+                            <ToggleButton value="sunrise" aria-label="sunrise">
+                              Sunrise
+                            </ToggleButton>
+                            <ToggleButton
+                              value="afternoon"
+                              aria-label="afternoon"
+                            >
+                              Afternoon
+                            </ToggleButton>
+                            <ToggleButton value="dusk" aria-label="dusk">
+                              Dusk
+                            </ToggleButton>
+                            <ToggleButton value="night" aria-label="night">
+                              Night
+                            </ToggleButton>
+                          </ToggleButtonGroup>
+                        </Box>
 
-                              img.onerror = () => {
-                                console.error(
-                                  "Failed to load image for canvas method"
-                                );
-                                // Final fallback - open in new tab
-                                window.open(generatedImageUrl, "_blank");
-                              };
-
-                              img.src = generatedImageUrl;
-                            } catch (canvasError) {
-                              console.error(
-                                "Canvas method failed:",
-                                canvasError
-                              );
-                              // Final fallback - open in new tab
-                              window.open(generatedImageUrl, "_blank");
+                        {/* Custom Instructions Input */}
+                        <Box sx={{ mb: 3, px: { xs: 2, sm: 0 } }}>
+                          <TextField
+                            label="Optional: Add extra details for the AI (e.g. mood, background elements, weather...)"
+                            multiline
+                            minRows={2}
+                            maxRows={6}
+                            value={revisionData.customInstructions}
+                            onChange={(e) =>
+                              setRevisionData((prev) => ({
+                                ...prev,
+                                customInstructions: e.target.value,
+                              }))
                             }
-                          }
-                        }}
-                        sx={{
-                          py: { xs: 1.5, sm: 2 },
-                          px: { xs: 3, sm: 4 },
-                          borderRadius: "12px",
-                          fontSize: { xs: "1rem", sm: "1.1rem" },
-                          fontWeight: 600,
-                          textTransform: "none",
-                          background:
-                            "linear-gradient(45deg, #10B981 30%, #34D399 90%)",
-                          boxShadow: "0 3px 5px 2px rgba(16, 185, 129, .3)",
-                          "&:hover": {
-                            background:
-                              "linear-gradient(45deg, #059669 30%, #10B981 90%)",
-                          },
-                        }}
-                      >
-                        📥 Download Image
-                      </Button>
+                            variant="outlined"
+                            fullWidth
+                          />
+                        </Box>
 
-                      <Button
-                        variant="outlined"
-                        size="large"
-                        onClick={handleReset}
-                        sx={{
-                          py: { xs: 1.5, sm: 2 },
-                          px: { xs: 3, sm: 4 },
-                          borderRadius: "12px",
-                          fontSize: { xs: "1rem", sm: "1.1rem" },
-                          fontWeight: 600,
-                          textTransform: "none",
-                          borderColor: "primary.main",
-                          color: "primary.main",
-                          "&:hover": {
-                            borderColor: "primary.dark",
-                            backgroundColor: "primary.main",
-                            color: "white",
-                          },
-                        }}
-                      >
-                        🔄 Create New Scene
-                      </Button>
-                    </Box>
+                        {/* Revision Error */}
+                        {revisionError && (
+                          <Alert
+                            severity="error"
+                            sx={{ mb: 3, mx: { xs: 2, sm: 0 } }}
+                          >
+                            <Typography variant="body2">
+                              {revisionError}
+                            </Typography>
+                          </Alert>
+                        )}
+
+                        {/* Revision Button */}
+                        <Box sx={{ px: { xs: 2, sm: 0 } }}>
+                          <Button
+                            variant="contained"
+                            size="large"
+                            fullWidth
+                            disabled={revisionLoading || !generationId}
+                            onClick={handleRevisionRequest}
+                            sx={{
+                              py: { xs: 1.5, sm: 2 },
+                              borderRadius: "12px",
+                              fontSize: { xs: "1rem", sm: "1.1rem" },
+                              fontWeight: 600,
+                              textTransform: "none",
+                              background:
+                                "linear-gradient(45deg, #8B5CF6 30%, #A78BFA 90%)",
+                              boxShadow: "0 3px 5px 2px rgba(139, 92, 246, .3)",
+                              "&:hover": {
+                                background:
+                                  "linear-gradient(45deg, #7C3AED 30%, #8B5CF6 90%)",
+                              },
+                              "&:disabled": {
+                                background: "grey.500",
+                                boxShadow: "none",
+                              },
+                            }}
+                          >
+                            {revisionLoading ? (
+                              <>
+                                <CircularProgress
+                                  size={20}
+                                  sx={{ mr: 1, color: "white" }}
+                                />
+                                Generating Revision...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshIcon sx={{ mr: 1 }} />
+                                Generate Free Revision
+                              </>
+                            )}
+                          </Button>
+                        </Box>
+                      </>
+                    )}
                   </Box>
                 )}
+
+                {/* Revision Used Message */}
+                {!isRevisionEligible && generationId && (
+                  <Box sx={{ px: { xs: 2, sm: 0 } }}>
+                    <Alert
+                      severity="success"
+                      sx={{ mb: 3 }}
+                      gap={1}
+                      icon={<CheckCircleIcon />}
+                    >
+                      <Typography variant="body2">
+                        <strong>Revision Complete!</strong>
+                      </Typography>
+                      <Typography variant="body2">
+                        Your scene has been refined. You can download the new
+                        version or create a new scene.
+                      </Typography>
+                    </Alert>
+                  </Box>
+                )}
+
+                {/* Action Button */}
+                <Box
+                  sx={{
+                    mt: 4,
+                    display: "flex",
+                    justifyContent: "center",
+                    px: { xs: 2, sm: 0 },
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={handleReset}
+                    sx={{
+                      py: { xs: 1.5, sm: 2 },
+                      px: { xs: 3, sm: 4 },
+                      borderRadius: "12px",
+                      fontSize: { xs: "1rem", sm: "1.1rem" },
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderColor: "primary.main",
+                      color: "primary.main",
+                      "&:hover": {
+                        borderColor: "primary.dark",
+                        backgroundColor: "primary.main",
+                        color: "white",
+                      },
+                    }}
+                  >
+                    Create New Scene
+                  </Button>
+                </Box>
               </Stack>
             </Box>
           </motion.div>
@@ -498,25 +638,6 @@ const StepsOverview = () => {
             />
           </motion.div>
         );
-    }
-  };
-
-  const isStepEnabled = (stepIndex) => {
-    if (stepIndex === 0) return true;
-    if (stepIndex === 1) return stepCompletion[0];
-    if (stepIndex === 2) return stepCompletion[0] && stepCompletion[1];
-    if (stepIndex === 3)
-      return (
-        stepCompletion[0] &&
-        stepCompletion[1] &&
-        (stepCompletion[2] || generatedImageUrl)
-      );
-    return false;
-  };
-
-  const handleStepClick = (stepIndex) => {
-    if (isStepEnabled(stepIndex)) {
-      setActiveStep(stepIndex);
     }
   };
 
@@ -576,7 +697,7 @@ const StepsOverview = () => {
           mt: { xs: 3, sm: 4 },
           width: "100%",
           maxWidth: 800,
-          px: { xs: 1, sm: 0 },
+          px: { xs: 2, sm: 0 },
         }}
       >
         <AnimatePresence mode="wait">{renderActiveStep()}</AnimatePresence>

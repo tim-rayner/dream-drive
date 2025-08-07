@@ -100,7 +100,7 @@ const ChooseLocationCard = ({
                   justifyContent: "center",
                   mb: 2,
                   position: "relative",
-                  overflow: "hidden",
+                  overflow: "visible",
                 }}
               >
                 {sceneImage ? (

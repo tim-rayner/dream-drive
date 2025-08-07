@@ -1,4 +1,5 @@
 import { Alert, Box, Card, CardContent, Chip, Typography } from "@mui/material";
+import Image from "next/image";
 import React from "react";
 import InteractiveGoogleMap from "../Maps/InteractiveGoogleMap";
 
@@ -159,13 +160,17 @@ export default function ChooseLocationStep({
                 backgroundColor: "background.paper",
               }}
             >
-              <img
+              <Image
                 src={sceneImage}
                 alt="Captured scene"
+                width={250}
+                height={250}
                 style={{
-                  width: "100%",
-                  height: "auto",
                   display: "block",
+                  objectFit: "cover",
+                  borderRadius: "8px",
+                  width: "100%",
+                  height: "100%",
                 }}
               />
             </Box>
@@ -179,7 +184,8 @@ export default function ChooseLocationStep({
                 fontSize: { xs: "0.875rem", sm: "1rem" },
               }}
             >
-              ✅ Scene captured successfully! You can now proceed to step 3.
+              This scene has been captured and stored. You can now proceed to
+              begin your photo shoot!{" "}
             </Typography>
           </CardContent>
         </Card>

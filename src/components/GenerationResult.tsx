@@ -202,17 +202,24 @@ export default function GenerationResult({
                 overflow: "hidden",
                 border: "1px solid",
                 borderColor: "divider",
+                width: { xs: "100%", sm: 500 },
+                height: { xs: "auto", sm: 500 },
+                maxWidth: { xs: "calc(100vw - 48px)", sm: 500 },
+                maxHeight: { xs: "calc(100vw - 48px)", sm: 500 },
+                mx: "auto",
+                aspectRatio: "1 / 1",
               }}
             >
               <Image
                 src={generation.final_image_url}
                 alt="Generated car scene"
-                width={800}
-                height={600}
+                width={500}
+                height={500}
                 style={{
                   width: "100%",
-                  height: "auto",
+                  height: "100%",
                   display: "block",
+                  objectFit: "cover",
                 }}
                 priority
               />

@@ -1,6 +1,9 @@
 "use client";
 
-import { AutoAwesome as AutoAwesomeIcon } from "@mui/icons-material";
+import {
+  AutoAwesome as AutoAwesomeIcon,
+  CheckCircle as CheckCircleIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -47,14 +50,24 @@ const GenerateImageCard = ({
             flexDirection: "column",
             transition: "all 0.3s ease-in-out",
             border:
-              activeStep === 2 ? "2px solid #8B5CF6" : "2px solid transparent",
+              activeStep === 2
+                ? "2px solid #8B5CF6"
+                : generatedImageUrl
+                ? "2px solid #10B981"
+                : "2px solid transparent",
             opacity: isStepEnabled(2) ? 1 : 0.5,
             cursor: isStepEnabled(2) ? "pointer" : "not-allowed",
             "&:hover": {
               boxShadow: isStepEnabled(2)
-                ? "0 8px 30px rgba(139, 92, 246, 0.1)"
+                ? generatedImageUrl
+                  ? "0 8px 30px rgba(16, 185, 129, 0.1)"
+                  : "0 8px 30px rgba(139, 92, 246, 0.1)"
                 : "none",
-              borderColor: isStepEnabled(2) ? "#8B5CF6" : "transparent",
+              borderColor: isStepEnabled(2)
+                ? generatedImageUrl
+                  ? "#10B981"
+                  : "#8B5CF6"
+                : "transparent",
             },
           }}
         >
@@ -90,7 +103,7 @@ const GenerateImageCard = ({
                     justifyContent: "center",
                     mb: 2,
                     position: "relative",
-                    overflow: "hidden",
+                    overflow: "visible",
                   }}
                 >
                   <img
@@ -107,18 +120,20 @@ const GenerateImageCard = ({
                   <Box
                     sx={{
                       position: "absolute",
-                      top: 8,
-                      right: 8,
+                      top: -5,
+                      right: -5,
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: "#10B981",
                       display: "flex",
                       alignItems: "center",
-                      gap: 0.5,
-                      backgroundColor: "rgba(0,0,0,0.7)",
-                      color: "white",
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: "12px",
+                      justifyContent: "center",
+                      border: "2px solid white",
                     }}
-                  ></Box>
+                  >
+                    <CheckCircleIcon sx={{ fontSize: 16, color: "white" }} />
+                  </Box>
                 </Box>
                 <Typography
                   variant="h6"
