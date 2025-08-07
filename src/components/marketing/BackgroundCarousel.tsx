@@ -35,7 +35,7 @@ const slides: SlideData[] = [
   {
     id: 3,
     imageUrl:
-      "https://images.pexels.com/photos/13144880/pexels-photo-13144880.jpeg",
+      "https://images.pexels.com/photos/25956735/pexels-photo-25956735.jpeg",
     header: "Perfect for Car Enthusiasts & Businesses",
     bodyText:
       "Whether you're a car lover sharing your ride or a business showcasing vehicles, our AI delivers jaw-dropping results every time.",

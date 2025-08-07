@@ -49,3 +49,19 @@ export type RevisionRequest = {
   timeOfDay: "sunrise" | "afternoon" | "dusk" | "night";
   customInstructions?: string;
 };
+
+export type VideoGeneration = {
+  id: string;
+  user_id: string;
+  image_url: string;
+  prompt: string;
+  video_url: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateVideoGenerationData = Omit<
+  VideoGeneration,
+  "id" | "user_id" | "created_at" | "updated_at"
+>;

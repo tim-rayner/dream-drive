@@ -15,8 +15,6 @@ import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useCredits } from "../../context/CreditsContext";
-import { refundCredit } from "../../lib/actions/refundCredit";
-import { spendCredit } from "../../lib/creditsService";
 import VideoPlayer from "../VideoPlayer";
 
 interface GenerateVideoStepProps {
@@ -113,17 +111,6 @@ export default function GenerateVideoStep({
     setVideoUrl(null);
 
     try {
-      const creditResult = await spendCredit();
-
-      if (!creditResult.success) {
-        setCurrentStep("idle");
-        setCreditError(creditResult.error || "Failed to spend credit");
-        return;
-      }
-
-      // Refresh credits in the context to update the navbar
-      await refreshCredits();
-
       console.log("🎬 Starting video generation API call...");
       console.log("🖼️ Image URL:", generatedImageUrl);
       console.log("📝 Prompt:", prompt);
@@ -141,6 +128,9 @@ export default function GenerateVideoStep({
         setVideoUrl(result.videoUrl);
         setCurrentStep("completed");
 
+        // Refresh credits in the context to update the navbar
+        await refreshCredits();
+
         setTimeout(() => {
           onComplete(result.videoUrl, result.videoId || null);
         }, 150);
@@ -150,29 +140,6 @@ export default function GenerateVideoStep({
     } catch (error) {
       console.error("Error generating video:", error);
       setCurrentStep("idle");
-
-      // If the API call failed, we need to refund the credit
-      console.log(
-        "🔄 Attempting to refund credit due to video generation failure..."
-      );
-      try {
-        if (user?.id) {
-          const refundResult = await refundCredit(user.id);
-          if (refundResult.success) {
-            console.log(
-              "✅ Credit refunded successfully due to video generation failure"
-            );
-            // Refresh credits in the context to update the navbar
-            await refreshCredits();
-          } else {
-            console.error("❌ Failed to refund credit:", refundResult.error);
-          }
-        } else {
-          console.error("❌ Cannot refund credit: no user ID available");
-        }
-      } catch (refundError) {
-        console.error("❌ Exception during credit refund:", refundError);
-      }
 
       if (error instanceof Error) {
         setError(error.message);
@@ -224,51 +191,6 @@ export default function GenerateVideoStep({
             Transform your generated image into a dynamic video with custom
             motion and effects
           </Typography>
-        </Box>
-
-        {/* Car Information Section */}
-        <Box sx={{ mb: 3 }}>
-          <Typography
-            variant="h6"
-            fontWeight={600}
-            sx={{ mb: 2, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}
-          >
-            Car Information (Optional)
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mb: 2, fontSize: { xs: "0.875rem", sm: "1rem" } }}
-          >
-            Help us create a more accurate video by providing your car&apos;s
-            make and model. This information will be used to enhance the video
-            generation with specific car details.
-          </Typography>
-
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <TextField
-              label="Car Make (e.g. BMW, Tesla, Ford)"
-              value={localCarMake}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setLocalCarMake(e.target.value)
-              }
-              variant="outlined"
-              fullWidth
-              placeholder="e.g. BMW, Tesla, Ford"
-              sx={{ flex: 1 }}
-            />
-            <TextField
-              label="Car Model (e.g. M3, Model S, Mustang)"
-              value={localCarModel}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setLocalCarModel(e.target.value)
-              }
-              variant="outlined"
-              fullWidth
-              placeholder="e.g. M3, Model S, Mustang"
-              sx={{ flex: 1 }}
-            />
-          </Stack>
         </Box>
 
         {/* Image Preview */}
@@ -403,6 +325,50 @@ export default function GenerateVideoStep({
             camera angles, weather effects, or background elements.
           </Typography>
 
+          {/* Car Information Section */}
+          <Box sx={{ my: 3 }}>
+            <Typography
+              variant="h6"
+              fontWeight={600}
+              sx={{ mb: 2, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}
+            >
+              Car Information (Optional)
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 2, fontSize: { xs: "0.875rem", sm: "1rem" } }}
+            >
+              Help us create a more accurate video by providing your car&apos;s
+              make and model. This information will be used to enhance the video
+              generation with specific car details.
+            </Typography>
+
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                label="Car Make (e.g. Nissan, Subaru, Toyota)"
+                value={localCarMake}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setLocalCarMake(e.target.value)
+                }
+                variant="outlined"
+                fullWidth
+                placeholder="e.g. Nissan, Subaru, Toyota"
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Car Model (e.g. GTR, Impreza, ae86)"
+                value={localCarModel}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setLocalCarModel(e.target.value)
+                }
+                variant="outlined"
+                fullWidth
+                placeholder="e.g. GTR, Impreza, ae86"
+                sx={{ flex: 1 }}
+              />
+            </Stack>
+          </Box>
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2">
               <strong>Default Motion:</strong> The video will create a cinematic
@@ -521,17 +487,17 @@ export default function GenerateVideoStep({
                     title="Dream Drive Video"
                     onDownload={() => {
                       // Create a proper download link for the video
-                      const link = document.createElement("a");
-                      link.href = videoUrl;
-                      link.download = "dream-drive-video.mp4";
-                      link.target = "_blank";
+                      const isReplicateUrl =
+                        videoUrl.includes("replicate.delivery") ||
+                        videoUrl.includes("replicate.com");
+                      const downloadUrl = isReplicateUrl
+                        ? `/api/video/proxy?url=${encodeURIComponent(videoUrl)}`
+                        : videoUrl;
 
-                      // For Replicate URLs, we might need to open in new tab first
-                      if (videoUrl.includes("replicate.delivery")) {
-                        window.open(videoUrl, "_blank");
-                      } else {
-                        link.click();
-                      }
+                      const link = document.createElement("a");
+                      link.href = downloadUrl;
+                      link.download = "dream-drive-video.mp4";
+                      link.click();
                     }}
                     width="100%"
                     height={400}

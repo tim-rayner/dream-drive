@@ -260,7 +260,7 @@ export default function VideoPlayer({
             <button
               onClick={() => {
                 const link = document.createElement("a");
-                link.href = videoUrl;
+                link.href = proxyVideoUrl;
                 link.download = "dream-drive-video.mp4";
                 link.click();
               }}

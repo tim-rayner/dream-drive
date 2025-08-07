@@ -11,8 +11,16 @@ export interface CreditsResult {
   addedCredits?: number;
 }
 
-export async function spendCredit(): Promise<CreditsResult> {
+interface SpendCreditOptions {
+  amount?: number;
+}
+
+export async function spendCredit(
+  options?: SpendCreditOptions
+): Promise<CreditsResult> {
   try {
+    const amount = options?.amount || 1;
+
     // Get the current user from secure cookies
     const {
       data: { user },
@@ -62,7 +70,7 @@ export async function spendCredit(): Promise<CreditsResult> {
       };
     }
 
-    if (!creditData || creditData.available_credits < 1) {
+    if (!creditData || creditData.available_credits < amount) {
       return {
         success: false,
         error: `Insufficient credits: ${
@@ -75,7 +83,10 @@ export async function spendCredit(): Promise<CreditsResult> {
     const { data: updatedData, error: updateError } = await supabase
       .from("credits")
       .update({
-        available_credits: creditData.available_credits - 1,
+        available_credits:
+          creditData.available_credits - amount > 0
+            ? creditData.available_credits - amount
+            : 0,
         updated_at: new Date().toISOString(),
       })
       .eq("id", userId)

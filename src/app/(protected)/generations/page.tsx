@@ -20,9 +20,11 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { useEffect, useRef, useState } from "react";
 import GenerationResult from "../../../components/GenerationResult";
 import ThemeWrapper from "../../../components/ThemeWrapper";
+import VideoGalleryItem from "../../../components/VideoGalleryItem";
+import VideoModal from "../../../components/VideoModal";
 import Footer from "../../../components/layout/Footer";
 import { useAuth } from "../../../context/AuthContext";
-import { type Generation } from "../../../lib/supabase";
+import { type Generation, type VideoGeneration } from "../../../lib/supabase";
 
 function GenerationGalleryItem({ generation }: { generation: Generation }) {
   const imageUrl = generation.final_image_url || generation.scene_image_url;
@@ -129,15 +131,24 @@ function GenerationModal({
 export default function GenerationsPage() {
   const { user, loading: authLoading } = useAuth();
   const [generations, setGenerations] = useState<Generation[]>([]);
+  const [videoGenerations, setVideoGenerations] = useState<VideoGeneration[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const [selectedGeneration, setSelectedGeneration] =
     useState<Generation | null>(null);
+  const [selectedVideoGeneration, setSelectedVideoGeneration] =
+    useState<VideoGeneration | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [videoPage, setVideoPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [videoHasMore, setVideoHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [videoLoadingMore, setVideoLoadingMore] = useState(false);
 
   const fetchGenerations = async (pageToFetch = 1, append = false) => {
     if (!user) return;
@@ -168,9 +179,46 @@ export default function GenerationsPage() {
     }
   };
 
+  const fetchVideoGenerations = async (pageToFetch = 1, append = false) => {
+    if (!user) return;
+    try {
+      if (pageToFetch === 1) setLoading(true);
+      else setVideoLoadingMore(true);
+      setError(null);
+      const response = await fetch(
+        `/api/video-generations?page=${pageToFetch}&limit=10`
+      );
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error || "Failed to fetch video generations");
+      if (append) {
+        setVideoGenerations((prev) => [
+          ...prev,
+          ...(result.videoGenerations || []),
+        ]);
+      } else {
+        setVideoGenerations(result.videoGenerations || []);
+      }
+      setVideoHasMore(
+        result.videoGenerations && result.videoGenerations.length === 10
+      );
+      setVideoPage(pageToFetch);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch video generations"
+      );
+    } finally {
+      setLoading(false);
+      setVideoLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && user) {
       fetchGenerations(1, false);
+      fetchVideoGenerations(1, false);
     }
     // eslint-disable-next-line
   }, [authLoading, user]);
@@ -300,7 +348,7 @@ export default function GenerationsPage() {
                 <Alert severity="error" sx={{ maxWidth: 600, mx: "auto" }}>
                   {error}
                 </Alert>
-              ) : generations.length === 0 ? (
+              ) : generations.length === 0 && videoGenerations.length === 0 ? (
                 <Box sx={{ textAlign: "center", py: 8 }}>
                   <AutoAwesomeIcon
                     sx={{ fontSize: 80, color: "text.secondary", mb: 2 }}
@@ -314,51 +362,134 @@ export default function GenerationsPage() {
                 </Box>
               ) : (
                 <>
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: {
-                        xs: "repeat(2, 1fr)",
-                        sm: "repeat(3, 1fr)",
-                        md: "repeat(4, 1fr)",
-                        lg: "repeat(5, 1fr)",
-                      },
-                      gap: { xs: 2, sm: 3 },
-                      mt: 2,
-                    }}
-                  >
-                    {generations.map((generation) => (
+                  {/* Image Generations */}
+                  {generations.length > 0 && (
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                        Image Generations
+                      </Typography>
                       <Box
-                        key={generation.id}
-                        onClick={() => {
-                          setSelectedGeneration(generation);
-                          setModalOpen(true);
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: {
+                            xs: "repeat(2, 1fr)",
+                            sm: "repeat(3, 1fr)",
+                            md: "repeat(4, 1fr)",
+                            lg: "repeat(5, 1fr)",
+                          },
+                          gap: { xs: 2, sm: 3 },
                         }}
-                        sx={{ cursor: "pointer" }}
                       >
-                        <GenerationGalleryItem generation={generation} />
+                        {generations.map((generation) => (
+                          <Box
+                            key={generation.id}
+                            onClick={() => {
+                              setSelectedGeneration(generation);
+                              setModalOpen(true);
+                            }}
+                            sx={{ cursor: "pointer" }}
+                          >
+                            <GenerationGalleryItem generation={generation} />
+                          </Box>
+                        ))}
                       </Box>
-                    ))}
-                  </Box>
-                  {hasMore && (
-                    <Box
-                      sx={{ display: "flex", justifyContent: "center", mt: 4 }}
-                    >
-                      <Button
-                        variant="outlined"
-                        onClick={() => fetchGenerations(page + 1, true)}
-                        disabled={loadingMore}
-                        sx={{ minWidth: 160, minHeight: 44, fontWeight: 600 }}
-                      >
-                        {loadingMore ? "Loading..." : "Load More"}
-                      </Button>
+                      {hasMore && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 4,
+                          }}
+                        >
+                          <Button
+                            variant="outlined"
+                            onClick={() => fetchGenerations(page + 1, true)}
+                            disabled={loadingMore}
+                            sx={{
+                              minWidth: 160,
+                              minHeight: 44,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {loadingMore ? "Loading..." : "Load More Images"}
+                          </Button>
+                        </Box>
+                      )}
                     </Box>
                   )}
+
+                  {/* Video Generations */}
+                  {videoGenerations.length > 0 && (
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                        Video Generations
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: {
+                            xs: "repeat(2, 1fr)",
+                            sm: "repeat(3, 1fr)",
+                            md: "repeat(4, 1fr)",
+                            lg: "repeat(5, 1fr)",
+                          },
+                          gap: { xs: 2, sm: 3 },
+                        }}
+                      >
+                        {videoGenerations.map((videoGeneration) => (
+                          <Box
+                            key={videoGeneration.id}
+                            onClick={() => {
+                              setSelectedVideoGeneration(videoGeneration);
+                              setVideoModalOpen(true);
+                            }}
+                            sx={{ cursor: "pointer" }}
+                          >
+                            <VideoGalleryItem
+                              videoGeneration={videoGeneration}
+                            />
+                          </Box>
+                        ))}
+                      </Box>
+                      {videoHasMore && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 4,
+                          }}
+                        >
+                          <Button
+                            variant="outlined"
+                            onClick={() =>
+                              fetchVideoGenerations(videoPage + 1, true)
+                            }
+                            disabled={videoLoadingMore}
+                            sx={{
+                              minWidth: 160,
+                              minHeight: 44,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {videoLoadingMore
+                              ? "Loading..."
+                              : "Load More Videos"}
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
                   <GenerationModal
                     open={modalOpen}
                     onClose={() => setModalOpen(false)}
                     generation={selectedGeneration}
                     onRevisionComplete={handleRevisionComplete}
+                  />
+                  <VideoModal
+                    open={videoModalOpen}
+                    onClose={() => setVideoModalOpen(false)}
+                    videoGeneration={selectedVideoGeneration}
                   />
                 </>
               )}

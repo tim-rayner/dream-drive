@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!creditData || creditData.available_credits < 1) {
+    if (!creditData || creditData.available_credits < 10) {
       console.error("❌ Insufficient credits:", {
         available: creditData?.available_credits || 0,
         userId: user.id,
@@ -107,17 +107,17 @@ export async function POST(request: NextRequest) {
         {
           error: `Insufficient credits: ${
             creditData?.available_credits || 0
-          } available`,
+          } available (10 required for video generation)`,
         },
         { status: 402 }
       );
     }
 
-    // 🔒 CRITICAL SECURITY: Deduct credit BEFORE any video generation
+    // 🔒 CRITICAL SECURITY: Deduct 10 credits BEFORE any video generation
     const { data: updatedCredits, error: deductError } = await supabase
       .from("credits")
       .update({
-        available_credits: creditData.available_credits - 1,
+        available_credits: creditData.available_credits - 10,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id)
@@ -158,26 +158,17 @@ export async function POST(request: NextRequest) {
       body.carModel.trim()
     ) {
       carDescription = `${body.carMake.trim()} ${body.carModel.trim()}`;
-      console.log("🚗 Using provided car info:", carDescription);
     } else {
-      console.log("🚗 Analyzing car in image for video prompt...");
       carDescription = await analyzeCarImage(body.imageUrl);
-      console.log("🚗 Car analysis result:", carDescription);
     }
 
     // Build a descriptive prompt for realistic car motion with car context - rolling shot style
-    const basePrompt = `A cinematic rolling shot video featuring ${carDescription} being filmed from another car driving alongside it. The camera should be positioned at the same height as the car, capturing a dynamic side-angle view as both vehicles drive down the road. The ${carDescription} should be driving at a realistic speed with proper physics - wheels rotating naturally, suspension responding to road conditions, and the vehicle maintaining smooth forward motion. The shot should look like it was filmed by a professional camera car, with the subject car being the main focus while maintaining cinematic quality and realistic driving dynamics.`;
+    const basePrompt = `A cinematic rolling shot video featuring ${carDescription} being filmed from another car driving alongside it. There should be a driver in th car. The camera should be positioned at the same height as the car, capturing a dynamic side-angle view as both vehicles drive forward down the road/terrain. The ${carDescription} should be driving at a realistic speed with proper physics - wheels rotating naturally, suspension responding to road conditions, and the vehicle maintaining smooth forward motion. The shot should look like it was filmed by a professional camera car, with the subject car being the main focus while maintaining cinematic quality and realistic driving dynamics.`;
 
     const fullPrompt =
       body.prompt && body.prompt.trim()
         ? `${basePrompt}. ${body.prompt.trim()}`
         : basePrompt;
-
-    console.log("🎬 Starting video generation...");
-    console.log("🖼️ Image URL:", body.imageUrl);
-    console.log("📝 Base prompt with car context:", basePrompt);
-    console.log("📝 Full prompt with user additions:", fullPrompt);
-    console.log("🚗 Car description used:", carDescription);
 
     // Generate video using minimax/hailuo-02 model
     const videoResult = await callReplicate({
