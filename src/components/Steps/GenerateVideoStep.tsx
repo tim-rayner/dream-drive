@@ -9,6 +9,8 @@ import {
   CircularProgress,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import Image from "next/image";
@@ -24,6 +26,7 @@ interface GenerateVideoStepProps {
   carMake?: string;
   carModel?: string;
   onBack?: () => void;
+  driftMode?: boolean;
 }
 
 type GenerationStep = "idle" | "generating" | "completed";
@@ -34,12 +37,16 @@ const generateVideo = async ({
   carMake,
   carModel,
   userId,
+  driftMode,
+  aspectRatio,
 }: {
   imageUrl: string;
   prompt: string;
   carMake?: string;
   carModel?: string;
   userId?: string;
+  driftMode?: boolean;
+  aspectRatio: "mobile" | "desktop";
 }) => {
   try {
     const response = await fetch("/api/video/generate", {
@@ -53,6 +60,8 @@ const generateVideo = async ({
         carMake,
         carModel,
         userId,
+        driftMode,
+        aspectRatio,
       }),
     });
 
@@ -88,6 +97,7 @@ export default function GenerateVideoStep({
   carMake,
   carModel,
   onBack,
+  driftMode = false,
 }: GenerateVideoStepProps) {
   const [currentStep, setCurrentStep] = useState<GenerationStep>("idle");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -96,6 +106,9 @@ export default function GenerateVideoStep({
   const [localCarMake, setLocalCarMake] = useState<string>(carMake || "");
   const [localCarModel, setLocalCarModel] = useState<string>(carModel || "");
   const [creditError, setCreditError] = useState<string | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<"mobile" | "desktop">(
+    "desktop"
+  );
   const { refreshCredits } = useCredits();
   const { user } = useAuth();
 
@@ -121,6 +134,8 @@ export default function GenerateVideoStep({
         carMake: localCarMake,
         carModel: localCarModel,
         userId: user?.id,
+        driftMode,
+        aspectRatio,
       });
 
       if (result.success && result.videoUrl) {
@@ -380,6 +395,68 @@ export default function GenerateVideoStep({
               instructions above to customize the video effects further.
             </Typography>
           </Alert>
+        </Box>
+
+        {/* Aspect Ratio Selection */}
+        <Box>
+          <Typography
+            variant="h5"
+            fontWeight={600}
+            sx={{ mb: 3, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
+          >
+            Video Aspect Ratio
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 2, fontSize: { xs: "0.875rem", sm: "1rem" } }}
+          >
+            Choose the aspect ratio for your video. This will determine the
+            final dimensions of your generated video.
+          </Typography>
+
+          <ToggleButtonGroup
+            value={aspectRatio}
+            exclusive
+            onChange={(_, newValue) => {
+              if (newValue !== null) {
+                setAspectRatio(newValue);
+              }
+            }}
+            aria-label="aspect ratio"
+            sx={{
+              width: "100%",
+              "& .MuiToggleButton-root": {
+                flex: 1,
+                py: 2,
+                px: 3,
+                borderRadius: "12px",
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: { xs: "0.875rem", sm: "1rem" },
+                border: "2px solid",
+                borderColor: "divider",
+                "&.Mui-selected": {
+                  backgroundColor: "primary.main",
+                  color: "white",
+                  borderColor: "primary.main",
+                  "&:hover": {
+                    backgroundColor: "primary.dark",
+                  },
+                },
+                "&:hover": {
+                  backgroundColor: "grey.100",
+                },
+              },
+            }}
+          >
+            <ToggleButton value="mobile" aria-label="mobile">
+              📱 Mobile (9:16)
+            </ToggleButton>
+            <ToggleButton value="desktop" aria-label="desktop">
+              🖥️ Desktop (16:9)
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         {/* Status and Action */}

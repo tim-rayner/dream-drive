@@ -39,6 +39,8 @@ interface GenerateVideoRequest {
   carMake?: string; // Car make (optional)
   carModel?: string; // Car model (optional)
   userId?: string;
+  driftMode?: boolean; // New: retro drift mode flag
+  aspectRatio?: "mobile" | "desktop"; // New: aspect ratio selection
 }
 
 export async function POST(request: NextRequest) {
@@ -162,21 +164,41 @@ export async function POST(request: NextRequest) {
       carDescription = await analyzeCarImage(body.imageUrl);
     }
 
-    // Build a descriptive prompt for realistic car motion with car context - rolling shot style
-    const basePrompt = `A cinematic rolling shot video featuring ${carDescription} being filmed from another car driving alongside it. There should be a driver in th car. The camera should be positioned at the same height as the car, capturing a dynamic side-angle view as both vehicles drive forward down the road/terrain. The ${carDescription} should be driving at a realistic speed with proper physics - wheels rotating naturally, suspension responding to road conditions, and the vehicle maintaining smooth forward motion. The shot should look like it was filmed by a professional camera car, with the subject car being the main focus while maintaining cinematic quality and realistic driving dynamics.`;
+    // Build a descriptive prompt for realistic car motion with car context
+    let basePrompt: string;
 
+    if (body.driftMode) {
+      // DRIFT MODE: High-speed drifting around corners with powerful disposable camera effect
+      basePrompt = `ABSOLUTE PRIORITY - POWERFUL DISPOSABLE CAMERA EFFECT: The entire video must be filmed with a powerful disposable camera effect that takes absolute priority over everything else. This should look like it was shot on a cheap disposable film camera from the 1990s with intense grain, washed-out colors, light leaks, vignetting, and that distinctive lo-fi aesthetic. The effect should be so strong and prominent that it dominates the entire visual style. CRITICAL SPEED REQUIREMENT: The drifts and powerslides must be FAST and FULL OF MOMENTUM - no slow motion, the car should be moving at high speed with explosive energy and rapid motion throughout the entire sequence. CRITICAL CONTROL REQUIREMENT: The car must NEVER spin out or lose control - it should maintain perfect drift control throughout the entire sequence, with the driver expertly managing the powerslide without any loss of control. A cinematic, realistic car drifting at high speed around a tight right-hand corner. The car begins in-frame already angled for a drift, with rear tires sliding laterally and smoke trailing behind. The front wheels countersteer into the drift, and the vehicle follows the curve of the road tightly and smoothly without spinning out. The motion should match the road's trajectory in frame 1, preserving the initial camera angle and direction. The ${carDescription} should be performing a dramatic powerslide with realistic physics - rear wheels sliding, front wheels countersteering, and SMOKE BILLOWING FROM THE REAR TIRES. DRIVER APPEARANCE: If a driver is visible in the car, they must be wearing a balaclava (ski mask) covering their face at all times throughout the entire video sequence. The camera should capture the dynamic action from a cinematic angle that shows the full drift motion with continuous smoke trails from the rear wheels throughout the entire sequence.`;
+    } else {
+      // NORMAL MODE: Rolling shot style
+      basePrompt = `A cinematic rolling shot video featuring ${carDescription} being filmed from another car driving alongside it. There should subtly be a driver in the car. The camera should be positioned at the same height as the car, capturing a dynamic side-angle view as both vehicles drive forward down the road/terrain. The ${carDescription} should be driving at a realistic speed with proper physics - wheels rotating naturally, suspension responding to road conditions, and the vehicle maintaining smooth forward motion. The shot should look like it was filmed by a professional camera car, with the subject car being the main focus while maintaining cinematic quality and realistic driving dynamics.`;
+    }
+
+    // If custom prompt is provided, append it to base prompt for both modes to preserve all requirements
     const fullPrompt =
       body.prompt && body.prompt.trim()
         ? `${basePrompt}. ${body.prompt.trim()}`
         : basePrompt;
 
+    // Determine resolution based on aspect ratio (minimax/hailuo-02 only supports 512p, 768p, 1080p)
+    const resolution = body.aspectRatio === "mobile" ? "768p" : "1080p";
+
+    // Add aspect ratio instructions to the prompt
+    const aspectRatioInstruction =
+      body.aspectRatio === "mobile"
+        ? " CRITICAL: Generate this video in PORTRAIT orientation (9:16 aspect ratio) - the video should be tall and narrow, perfect for mobile viewing."
+        : " CRITICAL: Generate this video in LANDSCAPE orientation (16:9 aspect ratio) - the video should be wide and short, perfect for desktop viewing.";
+
+    const finalPromptWithAspectRatio = fullPrompt + aspectRatioInstruction;
+
     // Generate video using minimax/hailuo-02 model
     const videoResult = await callReplicate({
       version: "minimax/hailuo-02",
       input: {
-        prompt: fullPrompt,
+        prompt: finalPromptWithAspectRatio,
         duration: 6,
-        resolution: "1080p",
+        resolution: resolution,
         prompt_optimizer: true,
         first_frame_image: body.imageUrl,
       },

@@ -17,6 +17,7 @@ interface GenerateFinalImageRequest {
   userId?: string; // New: for saving generation
   isRevision?: boolean; // New: revision flag
   originalGenerationId?: string; // New: links to original
+  driftMode?: boolean; // New: retro drift mode flag
 }
 
 // Reverse geocoding to get place names
@@ -190,7 +191,8 @@ async function generateFinalImage(
   placeDescription: string,
   customInstructions?: string,
   carMake?: string,
-  carModel?: string
+  carModel?: string,
+  driftMode?: boolean
 ): Promise<string> {
   // Use provided car make/model if available, otherwise analyze the image
   let carDescription: string;
@@ -201,7 +203,17 @@ async function generateFinalImage(
     carDescription = await analyzeCarImage(carImage);
     console.log("🚗 Car analysis result:", carDescription);
   }
-  let finalPrompt = `Generate a single, photorealistic image of the car from the uploaded photo, placed in the provided location scene (${sceneDescription} ${timeOfDay} in ${placeDescription}). CRITICAL: Remove ALL text, overlays, watermarks, logos, copyright notices, or any Google-related elements (including "Google", "Google Maps", "© Google", or any similar text) from both the car image and the location image. The final image must contain NO text, watermarks, or overlays whatsoever. IMPORTANT: The time of day must be ${timeOfDay} and there must be NO mention or depiction of any other time of day. Only show the time of day provided, and do not reference or suggest any other time of day. STRICT RULE: Do NOT generate collages, split views, or multiple images—output only ONE single, natural, realistic shot. Do not invent or add any other vehicles, objects, or features. The background should be the provided location image, and the car should be seamlessly integrated with natural lighting and shadows matching the ${timeOfDay} setting. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
+
+  let finalPrompt: string;
+
+  if (driftMode) {
+    // DRIFT MODE: Frame 1 of car entering a powerslide or drift
+    finalPrompt = `Generate a single, photorealistic image of the car from the uploaded photo, placed in the provided location scene (${sceneDescription} ${timeOfDay} in ${placeDescription}). CRITICAL: Remove ALL text, overlays, watermarks, logos, copyright notices, or any Google-related elements (including "Google", "Google Maps", "© Google", or any similar text) from both the car image and the location image. The final image must contain NO text, watermarks, or overlays whatsoever. IMPORTANT: The time of day must be ${timeOfDay} and there must be NO mention or depiction of any other time of day. Only show the time of day provided, and do not reference or suggest any other time of day. STRICT RULE: Do NOT generate collages, split views, or multiple images—output only ONE single, natural, realistic shot. Do not invent or add any other vehicles, objects, or features. The background should be the provided location image, and the car should be seamlessly integrated with natural lighting and shadows matching the ${timeOfDay} setting. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. ULTRA-REALISTIC DRIFT SETUP: The car should be positioned as if it's just beginning to enter a dramatic powerslide or drift around a corner. The car should be angled slightly, with the front wheels turned into the corner and the rear end starting to slide out. SMOKE EFFECT: The rear tires should be just starting to produce smoke as the car begins to slide, with wisps of tire smoke visible behind the rear wheels. DRIVER APPEARANCE: If a driver is visible in the car, they must be wearing a balaclava (ski mask) covering their face at all times. The car should be positioned to show maximum dynamic potential for drift action. The scene should be set up to capture the perfect moment before the full drift begins - frame 1 of an epic drift sequence. Ultra-realistic, cinematic, high resolution, optimized for drift video generation.`;
+  } else {
+    // NORMAL MODE: Standard car placement
+    finalPrompt = `Generate a single, photorealistic image of the car from the uploaded photo, placed in the provided location scene (${sceneDescription} ${timeOfDay} in ${placeDescription}). CRITICAL: Remove ALL text, overlays, watermarks, logos, copyright notices, or any Google-related elements (including "Google", "Google Maps", "© Google", or any similar text) from both the car image and the location image. The final image must contain NO text, watermarks, or overlays whatsoever. IMPORTANT: The time of day must be ${timeOfDay} and there must be NO mention or depiction of any other time of day. Only show the time of day provided, and do not reference or suggest any other time of day. STRICT RULE: Do NOT generate collages, split views, or multiple images—output only ONE single, natural, realistic shot. Do not invent or add any other vehicles, objects, or features. The background should be the provided location image, and the car should be seamlessly integrated with natural lighting and shadows matching the ${timeOfDay} setting. Do not alter the car's appearance, color, or shape. Only adapt the background and lighting to match the new scene. Ultra-realistic, cinematic, high resolution.`;
+  }
+
   if (customInstructions && customInstructions.trim().length > 0) {
     finalPrompt += ` ${customInstructions.trim()}`;
   }
@@ -395,7 +407,8 @@ export async function POST(request: NextRequest) {
       placeDescription,
       body.customInstructions,
       body.carMake,
-      body.carModel
+      body.carModel,
+      body.driftMode
     );
 
     // Save generation to database for authenticated user

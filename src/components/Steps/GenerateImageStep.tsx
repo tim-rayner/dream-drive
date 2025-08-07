@@ -34,6 +34,7 @@ interface GenerateImageStepProps {
     marker: unknown | null;
   };
   generatedImageUrl?: string | null;
+  driftMode?: boolean;
 }
 
 type TimeOfDay = "sunrise" | "afternoon" | "dusk" | "night";
@@ -48,6 +49,7 @@ const generateFinalImage = async ({
   timeOfDay,
   customInstructions,
   userId,
+  driftMode,
 }: {
   carImage: string;
   sceneImage: string;
@@ -56,6 +58,7 @@ const generateFinalImage = async ({
   timeOfDay: TimeOfDay;
   customInstructions: string;
   userId?: string;
+  driftMode?: boolean;
 }) => {
   try {
     const response = await fetch("/api/generateFinalImage", {
@@ -71,6 +74,7 @@ const generateFinalImage = async ({
         timeOfDay,
         customInstructions,
         userId,
+        driftMode,
       }),
     });
 
@@ -105,6 +109,7 @@ export default function GenerateImageStep({
   sceneImage,
   mapData,
   generatedImageUrl,
+  driftMode = false,
 }: GenerateImageStepProps) {
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("afternoon");
   const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
@@ -183,6 +188,7 @@ export default function GenerateImageStep({
         timeOfDay,
         customInstructions, // Pass to backend
         userId: user?.id,
+        driftMode,
       });
 
       if (result.success && result.imageUrl) {

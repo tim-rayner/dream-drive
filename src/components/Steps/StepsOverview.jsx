@@ -60,6 +60,7 @@ const StepsOverview = () => {
   const [isRevisionEligible, setIsRevisionEligible] = useState(true);
   const [revisionLoading, setRevisionLoading] = useState(false);
   const [revisionError, setRevisionError] = useState(null);
+  const [driftMode, setDriftMode] = useState(false);
   const mapContainerRef = useRef(null);
   const { user } = useAuth();
   const { refreshCredits } = useCredits();
@@ -151,6 +152,7 @@ const StepsOverview = () => {
           timeOfDay: revisionData.timeOfDay,
           customInstructions: revisionData.customInstructions,
           userId: user.id,
+          driftMode: driftMode,
         }),
       });
 
@@ -221,6 +223,7 @@ const StepsOverview = () => {
     setRevisionData({ timeOfDay: "afternoon", customInstructions: "" });
     setIsRevisionEligible(true);
     setRevisionError(null);
+    setDriftMode(false);
   }, []);
 
   const isStepEnabled = (stepIndex) => {
@@ -326,6 +329,7 @@ const StepsOverview = () => {
               sceneImage={sceneImage}
               mapData={mapData}
               generatedImageUrl={generatedImageUrl}
+              driftMode={driftMode}
             />
           </motion.div>
         );
@@ -345,6 +349,7 @@ const StepsOverview = () => {
                 carMake={carMake}
                 carModel={carModel}
                 onBack={() => setIsVideoGenerationMode(false)}
+                driftMode={driftMode}
               />
             ) : (
               <Box sx={{ maxWidth: 1200, mx: "auto", width: "100%" }}>
@@ -747,6 +752,100 @@ const StepsOverview = () => {
         px: { xs: 1, sm: 2 },
       }}
     >
+      {/* Mode Selection */}
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          p: 3,
+          borderRadius: 3,
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            borderRadius: 2,
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+            overflow: "visible",
+          }}
+        >
+          <Button
+            variant={driftMode ? "text" : "contained"}
+            onClick={() => setDriftMode(false)}
+            sx={{
+              py: 1.5,
+              px: 4,
+              borderRadius: 0,
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              textTransform: "none",
+              background: driftMode
+                ? "transparent"
+                : "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
+              borderColor: "transparent",
+              color: driftMode ? "text.primary" : "white",
+              boxShadow: driftMode
+                ? "none"
+                : "0 2px 4px rgba(25, 118, 210, .3)",
+              minWidth: "160px",
+              margin: "2px",
+              "&:hover": {
+                background: driftMode
+                  ? "rgba(25, 118, 210, 0.08)"
+                  : "linear-gradient(45deg, #1565c0 30%, #1976d2 90%)",
+              },
+              "&:first-of-type": {
+                borderTopLeftRadius: "8px",
+                borderBottomLeftRadius: "8px",
+              },
+            }}
+          >
+            Cinematic Photoshoot
+          </Button>
+
+          <Button
+            variant={driftMode ? "contained" : "text"}
+            onClick={() => setDriftMode(true)}
+            sx={{
+              py: 1.5,
+              px: 4,
+              borderRadius: 0,
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              textTransform: "none",
+              background: driftMode
+                ? "linear-gradient(45deg, #8B5CF6 30%, #A78BFA 90%)"
+                : "transparent",
+              borderColor: "transparent",
+              color: driftMode ? "white" : "text.primary",
+              boxShadow: driftMode
+                ? "0 2px 4px rgba(139, 92, 246, .3)"
+                : "none",
+              minWidth: "160px",
+              margin: "2px",
+              "&:hover": {
+                background: driftMode
+                  ? "linear-gradient(45deg, #7C3AED 30%, #8B5CF6 90%)"
+                  : "rgba(139, 92, 246, 0.08)",
+              },
+              "&:last-of-type": {
+                borderTopRightRadius: "8px",
+                borderBottomRightRadius: "8px",
+              },
+            }}
+          >
+            Retro Drift Mode
+          </Button>
+        </Box>
+      </Box>
+
       <Box
         sx={{
           display: "flex",
