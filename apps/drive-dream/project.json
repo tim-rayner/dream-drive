@@ -1,0 +1,40 @@
+{
+  "name": "drive-dream",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/drive-dream/src",
+  "projectType": "application",
+  "targets": {
+    "dev": {
+      "executor": "@nx/next:server",
+      "options": { 
+        "dev": true,
+        "port": 3000,
+        "buildTarget": "drive-dream:build"
+      }
+    },
+    "build": {
+      "executor": "@nx/next:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/drive-dream"
+      }
+    },
+    "serve": {
+      "executor": "@nx/next:server",
+      "defaultConfiguration": "development",
+      "options": {
+        "dev": true,
+        "buildTarget": "drive-dream:build"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/drive-dream/**/*.{ts,tsx,js,jsx}"]
+      }
+    }
+  },
+  "tags": []
+}

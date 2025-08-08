@@ -1,109 +1,72 @@
-# DriveDream
+# Dream Drive Monorepo
 
-DriveDream is a web-based AI studio where users upload photos of their car and place it anywhere in the world. DriveDream lets users "capture" a Street View snapshot from Google Maps, providing rich, realistic background context for their shot. The system then generates high-quality, cinematic images of their car in that chosen real-world scene.
+This is a monorepo containing the Dream Drive applications and shared libraries.
 
-## Features
+## Structure
 
-✅ **Car Photo Upload**: Upload and preview your car photos  
-✅ **Interactive Map**: Choose any location worldwide with Google Maps  
-✅ **Street View Capture**: Capture realistic scene backgrounds  
-✅ **AI Scene Generation**: Generate photorealistic car scenes using Replicate's SDXL  
-✅ **Custom Prompts**: Add optional details to guide AI generation  
-✅ **Responsive Design**: Works on desktop and mobile devices
-
-## Setup
-
-### 1. Install Dependencies
-
-```bash
-npm install
+```
+dream-drive/
+├── apps/
+│   └── drive-dream/          # Main Dream Drive Next.js application
+├── libs/                     # Shared libraries (future)
+├── tools/                    # Build tools and scripts (future)
+└── package.json              # Root package.json with all dependencies
 ```
 
-### 2. Environment Variables
+## Getting Started
 
-Create a `.env.local` file in the root directory with the following variables:
+### Prerequisites
 
-```bash
-# Google Maps API Key (required for location selection)
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+- Node.js 18+
+- pnpm
 
-# Replicate API Token (required for AI image generation)
-REPLICATE_API_TOKEN=your_replicate_api_token_here
-```
-
-#### Getting API Keys:
-
-**Google Maps API Key:**
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/google/maps-apis/credentials)
-2. Create a new project or select an existing one
-3. Enable the following APIs:
-   - Maps JavaScript API
-   - Street View Static API
-4. Create credentials (API Key)
-5. Restrict the API key to your domain for security
-
-**Replicate API Token:**
-
-1. Go to [Replicate](https://replicate.com/account/api-tokens)
-2. Create an account or sign in
-3. Generate a new API token
-4. Copy the token to your `.env.local` file
-
-### 3. Run the Development Server
+### Installation
 
 ```bash
-npm run dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+### Development
 
-## Usage
+To start the Drive Dream app in development mode:
 
-1. **Upload Car Photo**: Drag and drop or click to upload a photo of your car
-2. **Choose Location**: Click anywhere on the map to drop a pin and switch to Street View
-3. **Capture Scene**: Click "Choose Scene" to capture the Street View image
-4. **Generate AI Scene**: Add optional details and click "Generate AI Scene"
-5. **Download Result**: View and download your generated photorealistic car scene
+```bash
+pnpm dev
+# or
+nx serve drive-dream
+```
+
+### Building
+
+To build the Drive Dream app:
+
+```bash
+pnpm build
+# or
+nx build drive-dream
+```
+
+### Other Commands
+
+- `pnpm lint` - Lint the Drive Dream app
+- `pnpm build:all` - Build all apps
+- `pnpm lint:all` - Lint all apps
+
+## Apps
+
+### Drive Dream (`apps/drive-dream`)
+
+The main Dream Drive application - a Next.js app for generating AI-powered driving videos.
+
+See [apps/drive-dream/README.md](./apps/drive-dream/README.md) for more details.
 
 ## Technology Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **UI Framework**: Material-UI (MUI) v5
-- **Maps**: Google Maps JavaScript API
-- **AI Generation**: Replicate API with SDXL model
-- **Styling**: Tailwind CSS, Emotion
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linting
-npm run lint
-```
-
-## Environment Variables
-
-| Variable                          | Description                                 | Required |
-| --------------------------------- | ------------------------------------------- | -------- |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API key for location selection  | Yes      |
-| `REPLICATE_API_TOKEN`             | Replicate API token for AI image generation | Yes      |
-
-## Security Notes
-
-- Google Maps API key is exposed to the client (required for frontend functionality)
-- Replicate API token is kept server-side and proxied through API routes
-- Restrict Google Maps API key to your domain
-- Monitor Replicate API usage to control costs
-- API routes provide secure proxy for external API calls
+- **Framework**: Next.js 15
+- **Build System**: Nx
+- **Package Manager**: pnpm
+- **Styling**: Tailwind CSS
+- **UI Components**: Material-UI
+- **Database**: Supabase
+- **AI/ML**: Replicate
+- **Payments**: Stripe

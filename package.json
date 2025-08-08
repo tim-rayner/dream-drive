@@ -1,12 +1,14 @@
 {
-  "name": "dream-drive",
+  "name": "dream-drive-monorepo",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "nx dev drive-dream",
+    "build": "nx build drive-dream",
+    "start": "nx serve drive-dream --configuration=production",
+    "lint": "nx lint drive-dream",
+    "build:all": "nx run-many --target=build --all",
+    "lint:all": "nx run-many --target=lint --all"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.846.0",
@@ -28,6 +30,10 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@nx/eslint": "^21.3.11",
+    "@nx/jest": "^21.3.11",
+    "@nx/next": "^21.3.11",
+    "@nx/node": "^21.3.11",
     "@tailwindcss/postcss": "^4",
     "@types/google.maps": "^3.58.1",
     "@types/node": "^20",
@@ -35,7 +41,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.1",
+    "nx": "21.3.11",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "nx": {}
 }
