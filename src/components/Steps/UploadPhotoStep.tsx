@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Card, Stack, Typography } from "@mui/material";
 import FileUpload from "../FileUpload";
 
 export default function UploadPhotoStep({
@@ -39,23 +39,24 @@ export default function UploadPhotoStep({
           uploadedFile={uploadedFile}
         />
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          align="center"
-          sx={{
-            px: { xs: 2, sm: 0 },
-            fontSize: { xs: "0.875rem", sm: "1rem" },
-            lineHeight: 1.6,
-          }}
-        >
-          <strong>Tips for best results:</strong>
-          <br />
-          • Use a clear, well-lit photo of your car
-          <br />
-          • Ensure the car is the main subject of the image
-          <br />• Avoid photos with multiple cars or complex backgrounds
-        </Typography>
+        <Card sx={{ p: { xs: 1, sm: 2 }, borderRadius: 1, maxWidth: 430 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              px: { xs: 2, sm: 0 },
+              fontSize: { xs: "0.875rem", sm: "1rem" },
+              lineHeight: 1.6,
+            }}
+          >
+            <strong>Tips for best results:</strong>
+            <br />
+            • Use a clear, well-lit photo of your car
+            <br />
+            • Ensure the car is the main subject of the image
+            <br />• Avoid photos with multiple cars or complex backgrounds
+          </Typography>
+        </Card>
       </Stack>
     </Box>
   );

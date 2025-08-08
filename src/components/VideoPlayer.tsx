@@ -75,10 +75,7 @@ export default function VideoPlayer({
       setCurrentTime(0);
     };
 
-    const handleError = (e: Event) => {
-      console.error("Video error:", e);
-      console.error("Video URL:", videoUrl);
-      console.error("Video element:", video);
+    const handleError = () => {
       setError("Failed to load video");
       setIsLoading(false);
     };
@@ -112,7 +109,7 @@ export default function VideoPlayer({
       video.removeEventListener("loadstart", handleLoadStart);
       video.removeEventListener("canplay", handleCanPlay);
     };
-  }, []);
+  }, [videoUrl]);
 
   // Debug: Log video URL when it changes
   useEffect(() => {
@@ -234,76 +231,9 @@ export default function VideoPlayer({
           <Typography variant="body2" sx={{ mb: 1 }}>
             {error}
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{ opacity: 0.8, mb: 2, display: "block" }}
-          >
-            Video URL: {videoUrl}
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Videos are deleted from our servers after 24 hours.
           </Typography>
-          <Box sx={{ mt: 2 }}>
-            <a
-              href={videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: "white",
-                textDecoration: "none",
-                padding: "8px 16px",
-                backgroundColor: "rgba(255,255,255,0.2)",
-                borderRadius: "4px",
-                display: "inline-block",
-                marginRight: "8px",
-              }}
-            >
-              Open Video in New Tab
-            </a>
-            <button
-              onClick={() => {
-                const link = document.createElement("a");
-                link.href = proxyVideoUrl;
-                link.download = "dream-drive-video.mp4";
-                link.click();
-              }}
-              style={{
-                color: "white",
-                textDecoration: "none",
-                padding: "8px 16px",
-                backgroundColor: "rgba(255,255,255,0.2)",
-                borderRadius: "4px",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
-            >
-              Download Video
-            </button>
-            {isReplicateUrl && (
-              <button
-                onClick={() => {
-                  // Try to reload the video
-                  const video = videoRef.current;
-                  if (video) {
-                    video.load();
-                    setError(null);
-                    setIsLoading(true);
-                  }
-                }}
-                style={{
-                  color: "white",
-                  textDecoration: "none",
-                  padding: "8px 16px",
-                  backgroundColor: "rgba(255,255,255,0.2)",
-                  borderRadius: "4px",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  marginLeft: "8px",
-                }}
-              >
-                Retry Proxy
-              </button>
-            )}
-          </Box>
         </Box>
       )}
 
@@ -320,9 +250,6 @@ export default function VideoPlayer({
           objectFit: "contain",
         }}
         onError={(e) => {
-          console.error("Video error:", e);
-          console.error("Original URL:", videoUrl);
-          console.error("Proxy URL:", proxyVideoUrl);
           setError(
             "Video failed to load. Please try again or contact support."
           );
@@ -332,7 +259,7 @@ export default function VideoPlayer({
       />
 
       {/* Custom Controls */}
-      {controls && (
+      {controls && !error && (
         <Box
           className="video-controls"
           sx={{

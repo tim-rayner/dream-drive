@@ -39,13 +39,12 @@ interface GenerateVideoRequest {
   carMake?: string; // Car make (optional)
   carModel?: string; // Car model (optional)
   userId?: string;
-  driftMode?: boolean; // New: retro drift mode flag
-  aspectRatio?: "mobile" | "desktop"; // New: aspect ratio selection
+  driftMode?: boolean;
+  aspectRatio?: "mobile" | "desktop";
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // 🔒 SECURITY: Apply rate limiting
     const rateLimitResult = rateLimit(request, generationRateLimiter);
     if (rateLimitResult) {
       return rateLimitResult;

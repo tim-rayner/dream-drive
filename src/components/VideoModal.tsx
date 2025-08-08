@@ -35,7 +35,7 @@ export default function VideoModal({
           fontWeight: 700,
         }}
       >
-        <Typography variant="h6" fontWeight={700}>
+        <Typography variant="body1" fontWeight={700}>
           Video Generation
         </Typography>
         <IconButton onClick={onClose} size="small">
