@@ -21,7 +21,7 @@ export class LookupSoundsUseCase {
     variant?: SoundVariant;
   }) {
     const cacheKey = `enginetone:${JSON.stringify(q)}`;
-    const cached = await this.cache.get<any>(cacheKey);
+    const cached = await this.cache.get<unknown>(cacheKey);
     if (cached) return cached;
 
     const car = await this.resolveCar.execute(q);

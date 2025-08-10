@@ -6,7 +6,7 @@ export class RedisCacheAdapter implements ICachePort {
   private ready = this.client.connect();
   async get<T>(key: string): Promise<T | null> {
     await this.ready;
-    const v = await this.client.get(key);
+    const v = (await this.client.get(key)) as string;
     return v ? (JSON.parse(v) as T) : null;
   }
   async set<T>(key: string, value: T, ttlSec: number) {

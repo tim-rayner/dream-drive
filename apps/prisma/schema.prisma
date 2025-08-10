@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ApiKey {
+  id         String   @id @default(uuid())
+  name       String
+  prefix     String   @db.VarChar(16)
+  hash       String   @unique
+  scope      String   // JSON string
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime?
+  @@index([prefix])
+}
+
+model CarModel {
+  id        String   @id @default(cuid())
+  make      String
+  model     String
+  yearFrom  Int?
+  yearTo    Int?
+  engineKey String?
+  aliases   CarAlias[]
+  sounds    Sound[]
+  @@index([make, model])
+}
+
+model CarAlias {
+  id         String  @id @default(cuid())
+  make       String
+  model      String
+  yearFrom   Int?
+  yearTo     Int?
+  engineKey  String?
+  carModelId String
+  carModel   CarModel @relation(fields: [carModelId], references: [id], onDelete: Cascade)
+  @@index([make, model])
+}
+
+model Sound {
+  id          String  @id @default(cuid())
+  carModelId  String
+  variant     String
+  objectKey   String
+  durationSec Float?
+  sampleRate  Int?
+  channels    Int?
+  bitrateKbps Int?
+  license     String?
+  attribution String?
+  qualityNote String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  carModel    CarModel @relation(fields: [carModelId], references: [id], onDelete: Cascade)
+  @@index([carModelId, variant])
+}

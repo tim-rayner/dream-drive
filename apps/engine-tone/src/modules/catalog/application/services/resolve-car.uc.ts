@@ -3,7 +3,7 @@ import { ICarModelRepository } from '../../domain/interfaces/car-model.repo';
 import {
   normalizeMake,
   normalizeModel,
-} from '../../domain/services/normalization.service';
+} from '../../domain/services/normalisation.service';
 
 export class ResolveCarUseCase {
   constructor(

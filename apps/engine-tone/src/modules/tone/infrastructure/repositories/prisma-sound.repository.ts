@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Sound, SoundVariant } from '../../domain/entities/sound.entity';
 import { ISoundRepository } from '../../domain/interfaces/sound.repo';
 
 export class PrismaSoundRepository implements ISoundRepository {
   constructor(private prisma: PrismaClient) {}
   async listByCarModel(carModelId: string, variant?: SoundVariant) {
-    const where: any = { carModelId };
+    const where: Prisma.SoundWhereInput = { carModelId };
     if (variant) where.variant = variant;
     const rows = await this.prisma.sound.findMany({ where });
     return rows.map(
